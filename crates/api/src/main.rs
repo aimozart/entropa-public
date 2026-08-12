@@ -59,7 +59,17 @@ async fn main() {
         }
     }
 
-    let state = AppState::new(node);
+    let mut state = AppState::new(node);
+    match std::env::var("ENTROPA_API_KEYS") {
+        Ok(spec) if !spec.trim().is_empty() => {
+            state = state.with_api_keys(&spec);
+            println!(
+                "🔐 /api/tx requires an API key — {} partner(s) configured",
+                state.api_keys.len()
+            );
+        }
+        _ => println!("🔓 /api/tx is open — set ENTROPA_API_KEYS to require partner keys"),
+    }
 
     // Background: each round, decide → submit → produce a real Proof-of-Entropy block,
     // then persist (best-effort — a failed save just gets caught by the next one).

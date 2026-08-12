@@ -15,9 +15,17 @@
 //!   disturbed by the explorer's live refresh)
 //! - `GET  /flow`         — a readable feed of the Probe's decisions
 //! - `GET  /robots.txt`, `/sitemap.xml`, `/llms.txt` — crawler/AI-result discoverability
+//!
+//! `POST /api/tx` requires a bearer API key when `AppState.api_keys` is non-empty (see
+//! `AppState::with_api_keys`) — an authenticated submission's `from` field is overridden
+//! with the key's owning partner name, so it can't be spoofed. When no keys are
+//! configured, the endpoint stays open (the public open-core demo's default).
 
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
+use axum::{error_handling::HandleErrorLayer, BoxError};
 use axum::{
     extract::{Path, State},
     http::{header, HeaderMap, StatusCode},
@@ -25,6 +33,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 
 use entropa_core::{Block, Transaction};
 use entropa_node::Node;
@@ -33,13 +42,30 @@ use entropa_node::Node;
 #[derive(Clone)]
 pub struct AppState {
     pub node: Arc<Mutex<Node>>,
+    /// Bearer key → owning partner name. Empty means `/api/tx` is open (dev/demo mode).
+    pub api_keys: Arc<HashMap<String, String>>,
 }
 
 impl AppState {
     pub fn new(node: Node) -> Self {
         Self {
             node: Arc::new(Mutex::new(node)),
+            api_keys: Arc::new(HashMap::new()),
         }
+    }
+
+    /// Parse `ENTROPA_API_KEYS`-style config: `"name1:key1,name2:key2"`.
+    pub fn with_api_keys(mut self, spec: &str) -> Self {
+        let keys = spec
+            .split(',')
+            .filter_map(|pair| {
+                let (name, key) = pair.split_once(':')?;
+                let (name, key) = (name.trim(), key.trim());
+                (!name.is_empty() && !key.is_empty()).then(|| (key.to_string(), name.to_string()))
+            })
+            .collect();
+        self.api_keys = Arc::new(keys);
+        self
     }
 }
 
@@ -88,7 +114,19 @@ pub fn app(state: AppState) -> Router {
         .route("/api/health", get(health))
         .route("/api/chain", get(chain))
         .route("/api/head", get(head))
-        .route("/api/tx", post(submit_tx))
+        .route(
+            "/api/tx",
+            // Global cap on the write path — 20 req/s. Not per-key fairness yet (one
+            // noisy caller can still crowd others out), but it stops a flood/bug from
+            // hammering the mempool or GCS. Tighten to per-key limits once there's
+            // real multi-partner traffic to justify the extra complexity.
+            post(submit_tx).layer(
+                ServiceBuilder::new()
+                    .layer(HandleErrorLayer::new(rate_limit_error))
+                    .layer(BufferLayer::new(1024))
+                    .layer(RateLimitLayer::new(20, Duration::from_secs(1))),
+            ),
+        )
         .with_state(state)
 }
 
@@ -266,13 +304,41 @@ table{width:100%;border-collapse:collapse;background:rgba(255,255,255,.03);borde
 </style></head>
 "#;
 
+/// Turns a buffered/rate-limited request's failure (queue full, or over the rate cap)
+/// into a proper HTTP response instead of the connection just dying.
+async fn rate_limit_error(err: BoxError) -> (StatusCode, String) {
+    (
+        StatusCode::TOO_MANY_REQUESTS,
+        format!("rate limited: {err}"),
+    )
+}
+
+/// Pull the bearer token out of `Authorization: Bearer <key>`, if present.
+fn bearer_token(headers: &HeaderMap) -> Option<&str> {
+    headers
+        .get(header::AUTHORIZATION)
+        .and_then(|h| h.to_str().ok())
+        .and_then(|h| h.strip_prefix("Bearer "))
+}
+
 async fn submit_tx(
     State(s): State<AppState>,
-    Json(tx): Json<Transaction>,
-) -> Json<serde_json::Value> {
+    headers: HeaderMap,
+    Json(mut tx): Json<Transaction>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    if !s.api_keys.is_empty() {
+        let partner = bearer_token(&headers)
+            .and_then(|token| s.api_keys.get(token))
+            .ok_or(StatusCode::UNAUTHORIZED)?;
+        // The authenticated key's owner overrides whatever `from` the client sent —
+        // a partner can't submit a transaction claiming to be someone else.
+        tx.from = partner.clone();
+    }
     let mut n = s.node.lock().unwrap();
     n.submit(tx);
-    Json(serde_json::json!({ "accepted": true, "pending": n.mempool.len() }))
+    Ok(Json(
+        serde_json::json!({ "accepted": true, "pending": n.mempool.len() }),
+    ))
 }
 
 #[cfg(test)]
@@ -367,5 +433,70 @@ mod tests {
                 .unwrap();
             assert_eq!(resp.status(), StatusCode::OK, "{path} should return 200");
         }
+    }
+
+    #[tokio::test]
+    async fn tx_open_when_no_keys_configured() {
+        let resp = app(AppState::new(node_with_one_block()))
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/tx")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        r#"{"from":"anyone","kind":"attest","payload":"hi"}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn tx_rejects_missing_key_when_keys_configured() {
+        let state = AppState::new(node_with_one_block()).with_api_keys("acme:secret123");
+        let resp = app(state)
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/tx")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        r#"{"from":"anyone","kind":"attest","payload":"hi"}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn tx_accepts_valid_key_and_overrides_from() {
+        let state = AppState::new(node_with_one_block()).with_api_keys("acme:secret123");
+        let n = Arc::clone(&state.node);
+        let resp = app(state)
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/tx")
+                    .header("content-type", "application/json")
+                    .header("authorization", "Bearer secret123")
+                    .body(Body::from(
+                        r#"{"from":"spoofed","kind":"attest","payload":"hi"}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let locked = n.lock().unwrap();
+        let pending = locked.mempool.pending();
+        assert_eq!(pending.len(), 1);
+        assert_eq!(
+            pending[0].from, "acme",
+            "authenticated `from` must win over the client-supplied one"
+        );
     }
 }
