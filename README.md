@@ -142,7 +142,7 @@ Probe, Gemini-driven on Vertex AI, lives in the private `entropa-agents` crate â
 [`OPEN_SOURCE.md`](OPEN_SOURCE.md).)
 
 ```bash
-cargo test --workspace   # 25 tests, all real crypto and consensus logic
+cargo test --workspace   # 31 tests, all real crypto and consensus logic
 ```
 
 ## Why Rust
