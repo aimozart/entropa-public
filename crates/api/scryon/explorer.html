@@ -23,7 +23,7 @@
   header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:10px 0 24px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;color:var(--head);text-decoration:none}
   .brand small{font-weight:600;font-size:12px;color:var(--muted);display:block;letter-spacing:.5px}
-  .cursor{display:inline-block;width:.4ch;background:linear-gradient(135deg,#7c5cff,#34d1ff);animation:blink 1.1s step-end infinite}
+  .brand b{background:linear-gradient(135deg,#7c5cff,#e24bff 55%,#34d1ff);-webkit-background-clip:text;background-clip:text;color:transparent;animation:blink 1.1s step-end infinite}
   @keyframes blink{50%{opacity:0}}
   nav.top a{color:var(--muted);text-decoration:none;font-size:13px;margin-left:18px}
   nav.top a:hover{color:var(--head)}
@@ -76,7 +76,7 @@
   <div class="wrap">
     <header class="top">
       <a class="brand" href="https://entropa.space">
-        Entropa<span class="cursor">&nbsp;</span> <small>/ scryon explorer</small>
+        Entropa<b>_</b> <small>/ scryon explorer</small>
       </a>
       <nav class="top">
         <a href="https://entropa.space">About</a>
