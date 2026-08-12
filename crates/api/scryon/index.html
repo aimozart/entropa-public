@@ -91,6 +91,34 @@
        The panels below are filled in server-side-equivalent at page load via fetch();
        if JS is off, the descriptive text here still explains the network honestly. -->
   <section class="panel">
+    <h2>What is Entropa?</h2>
+    <p style="color:var(--text); font-size:15px; line-height:1.6;">
+      Entropa is a <strong>post-quantum trust layer for AI agents</strong> — not a currency. There's
+      no mining, no staking, and nothing to speculate on. Think of it as an API you'd use to get
+      proof: send a hash, get back a tamper-proof, quantum-safe, timestamped receipt.
+    </p>
+    <p style="color:var(--dim); font-size:14px; line-height:1.6; margin-top:10px;">
+      Every block is signed with <strong style="color:var(--text)">ML-DSA (NIST FIPS-204)</strong> —
+      a lattice-based signature built to survive a future quantum computer. The network's validators
+      are AI <strong style="color:var(--text)">Probes</strong> that reason about what to record,
+      rather than miners burning electricity on arbitrary puzzles. And instead of mining or staking,
+      each round's proposer is chosen by <strong style="color:var(--text)">Proof of Entropy</strong> —
+      a cosmic randomness beacon that's unbiasable and computed identically by every honest node.
+      Order, drawn from the entropy of space.
+    </p>
+    <p style="color:var(--dim); font-size:14px; line-height:1.6; margin-top:10px;">
+      Entropa never holds your data — only a hash, a signature, and a timestamp. It's a
+      <em>"don't trust me, let me prove it"</em> primitive, built for AI-agent audit trails,
+      multi-agent coordination records, and provenance/attestation.
+    </p>
+    <p style="margin-top:14px;">
+      <a href="https://github.com/aimozart/entropa-public">Source (MIT)</a> ·
+      <a href="https://github.com/aimozart/entropa-public/blob/main/POSITIONING.md">Full positioning</a> ·
+      <a href="https://github.com/aimozart/entropa-public/blob/main/ARCHITECTURE.md">Architecture</a>
+    </p>
+  </section>
+
+  <section class="panel">
     <h2>Network</h2>
     <div class="stat-grid">
       <div class="stat"><div class="n" id="stat-height">—</div><div class="l">blocks (height)</div></div>

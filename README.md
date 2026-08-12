@@ -1,0 +1,97 @@
+<div align="center">
+
+# Entropa_
+
+**AI probes reach post-quantum consensus, seeded by the entropy of space.**
+
+*Entropa is boring. All we do is keep you safe.*
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-57e0c4)](LICENSE-MIT)
+![Rust](https://img.shields.io/badge/100%25-Rust-orange)
+![PQC](https://img.shields.io/badge/signatures-ML--DSA%20(FIPS--204)-7c8cff)
+![Consensus](https://img.shields.io/badge/consensus-Proof%20of%20Entropy-7c8cff)
+![No mining](https://img.shields.io/badge/mining-none-lightgrey)
+
+</div>
+
+---
+
+## What this is
+
+Entropa is a **post-quantum trust layer for AI agents** — not a currency. There's no mining, no
+staking, and no token to speculate on. It's infrastructure you'd use like an API: send a hash, get
+back a tamper-proof, quantum-safe, timestamped receipt.
+
+It's built around three ideas at once:
+
+- **Post-quantum cryptography.** Every block is signed with **ML-DSA (NIST FIPS-204)** — the
+  lattice-based signature scheme built to survive a future quantum adversary. Most chains today
+  aren't quantum-safe. This one is, from block zero.
+- **AI Probes.** The network's validators are AI agents ("Probes") that reason about what to
+  record, rather than miners burning electricity on arbitrary puzzles.
+- **Proof of Entropy (PoE).** Consensus with no mining and no staking plutocracy. Each round, the
+  next proposer is chosen deterministically by a **cosmic entropy beacon** — unbiasable, and the
+  same for every honest node, without coordination. Order, drawn from the entropy of space.
+
+Deterministic agentic architecture: the AI is probabilistic, the ledger is not. Every Probe action
+follows a fixed pipeline — decide → validate → post-quantum sign → append — so the result is always
+a replayable, non-repudiable record, however the model reasoned to get there.
+
+## What it's for
+
+Not moving money. **Proof.**
+
+- **Post-quantum audit trails for AI agents** — an unforgeable record of what an agent did and
+  decided, built to survive a quantum adversary.
+- **Multi-agent coordination records** — shared, verifiable memory a swarm of agents can trust.
+- **Provenance & attestation** — "this came from this agent, signed, at this time."
+- **Verifiable randomness** — the Proof-of-Entropy beacon, usable standalone.
+
+Entropa never holds your data — only a hash, a signature, and a timestamp. It's a "don't trust me,
+let me prove it" primitive, not a data processor.
+
+See [`POSITIONING.md`](POSITIONING.md) for the full pitch and [`ARCHITECTURE.md`](ARCHITECTURE.md)
+for the system diagram.
+
+## This repo (open core)
+
+| Crate | What it is |
+|---|---|
+| [`entropa-core`](crates/core) | ML-DSA (FIPS-204) Probe identities, transactions, blocks, a fully verifiable chain |
+| [`entropa-node`](crates/node) | Mempool + **Proof of Entropy** consensus engine |
+| [`entropa-api`](crates/api) | axum JSON gateway + **Scryon**, the live star-map explorer |
+
+The AI Probe intelligence (`entropa-agents` — the actual decision-making brain) is proprietary and
+lives in a private repo. This repo is the open core: the cryptography, the consensus protocol, and
+the explorer, all **MIT-licensed**. See [`OPEN_SOURCE.md`](OPEN_SOURCE.md) for the full split and why.
+
+## Run it locally
+
+```bash
+git clone https://github.com/aimozart/entropa-public.git entropa
+cd entropa
+cargo run -p entropa-api
+```
+
+Open **http://localhost:8080** — a real single-node network starts immediately: genuine ML-DSA
+signatures, genuine Proof-of-Entropy block production, live on the Scryon explorer. (The demo's
+proposer is a small deterministic stand-in for the real AI Probe — see
+[`crates/api/src/main.rs`](crates/api/src/main.rs).)
+
+```bash
+cargo test --workspace   # 18 tests, all real crypto and consensus logic
+```
+
+## Why Rust
+
+Systems-grade safety and performance for cryptographic infrastructure — memory-safe by
+construction, no GC pauses, a first-class ML-DSA implementation, one language from the chain core
+to the node to the gateway.
+
+---
+
+<div align="center">
+
+Built by **[aimozart](https://github.com/aimozart)** · [entropa.space](https://entropa.space)
+
+</div>
