@@ -84,6 +84,10 @@ and what it self-heals versus what pages a human.
 **Built solo, end to end, by one AI orchestrator.** If this is what one person directing AI can ship alone,
 see [`HIRE.md`](HIRE.md) for what that could do for your team.
 
+Using the hosted service? See [`TERMS_OF_SERVICE.md`](TERMS_OF_SERVICE.md) and
+[`PRIVACY_POLICY.md`](PRIVACY_POLICY.md) — worth reading in full, since everything submitted to `/api/tx`
+becomes a permanent, public record.
+
 ## Verified against NIST's own vectors
 
 The cryptography isn't "trust me, it's post-quantum." It's asserted **byte-for-byte** against
