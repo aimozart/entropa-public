@@ -35,7 +35,7 @@ fn demo_decision(round: u64, pending: usize) -> Transaction {
     Transaction::new(
         "demo-probe",
         "attest",
-        format!("round {round} · {pending} pending · cosmic beacon verified"),
+        format!("round {round} · {pending} pending · randomness beacon verified"),
     )
 }
 
@@ -67,10 +67,16 @@ async fn main() {
     tokio::spawn(async move {
         let mut round = round;
         loop {
+            // Fetch the live entropy beacon (drand's public quicknet) once for this
+            // round and inject it before the sync is_proposer/try_produce pair runs,
+            // so both see the identical value — falls back to the deterministic stub
+            // if drand is unreachable.
+            let live_beacon = entropa_core::beacon::sample_live().await;
             let saved_blocks = {
                 let mut n = ticker.lock().unwrap();
                 let tx = demo_decision(round, n.mempool.len());
                 n.submit(tx);
+                n.live_beacon = live_beacon;
                 n.try_produce(round, now()).map(|_| n.chain.blocks.clone())
             };
             if let Some(blocks) = saved_blocks {

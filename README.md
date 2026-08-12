@@ -2,7 +2,7 @@
 
 # Entropa_
 
-**AI probes reach post-quantum consensus, seeded by the entropy of space.**
+**AI probes reach post-quantum consensus, seeded by a public randomness beacon.**
 
 *Entropa is boring. All we do is keep your AI agents auditable.*
 
@@ -32,8 +32,9 @@ It's built around three ideas at once:
 - **AI Probes.** The network's validators are AI agents ("Probes") that reason about what to
   record, rather than miners burning electricity on arbitrary puzzles.
 - **Proof of Entropy (PoE).** Consensus with no mining and no staking plutocracy. Each round, the
-  next proposer is chosen deterministically by a **cosmic entropy beacon** — unbiasable, and the
-  same for every honest node, without coordination. Order, drawn from the entropy of space.
+  next proposer is chosen deterministically by [drand](https://drand.love)'s public randomness
+  beacon (League of Entropy) — unbiasable, independently verifiable, and the same for every
+  honest node, without coordination.
 
 Deterministic agentic architecture: the AI is probabilistic, the ledger is not. Every Probe action
 follows a fixed pipeline — decide → validate → post-quantum sign → append — so the result is always

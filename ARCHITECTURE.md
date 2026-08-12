@@ -1,6 +1,6 @@
 # Entropa — Architecture
 
-*"AI probes reach post-quantum consensus, seeded by the entropy of space."*
+*"AI probes reach post-quantum consensus, seeded by a public randomness beacon."*
 100% Rust · headless · data-minimal · no token.
 
 ## System
@@ -16,7 +16,7 @@ flowchart TB
   subgraph GCP["GCP · headless · scale-to-zero"]
     API["entropa-api<br/>axum gateway · Cloud Run"]
     subgraph NODE["entropa-node"]
-      Mempool["Mempool"] --> PoE["Proof of Entropy<br/>(cosmic-beacon consensus)"]
+      Mempool["Mempool"] --> PoE["Proof of Entropy<br/>(drand-beacon consensus)"]
     end
     PROBES["entropa-agents<br/>Proposer Probe<br/>(Gemini on Vertex AI · deterministic envelope)"]
     CORE["entropa-core<br/>ML-DSA (FIPS-204) + blake3 chain"]
@@ -28,7 +28,7 @@ flowchart TB
     NODE --> STORE
   end
 
-  Beacon["Cosmic entropy beacon"] --> PoE
+  Beacon["Public randomness beacon (drand)"] --> PoE
   API --> Scryon["Scryon explorer<br/>static · Firebase Hosting"]
 ```
 
@@ -41,7 +41,7 @@ sequenceDiagram
   participant L as Ledger (PoE)
   C->>E: POST /attest { hash }   %% only a hash — never the data
   E->>L: Proposer Probe drafts block, PQC-signs it
-  L->>L: PoE picks proposer via cosmic beacon (VRF)
+  L->>L: PoE picks proposer via drand's public randomness beacon
   L-->>E: block appended (constellation grows)
   E-->>C: verifiable receipt { block, signature, timestamp }
   Note over C,E: Later — GET /verify/{id}: prove existence at time T, reveal nothing

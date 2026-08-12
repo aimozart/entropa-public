@@ -2,9 +2,10 @@
 //!
 //! No mining. No staking. No wasted energy. Each round, exactly one Probe in the
 //! validator set is chosen to propose the next block, and the choice is derived
-//! deterministically from the round's **cosmic entropy beacon** — so every honest node
-//! computes the same proposer without coordination, and no validator (however rich or
-//! powerful) can bias who gets selected. Order, drawn from the entropy of space.
+//! deterministically from the round's **public randomness beacon** (see
+//! `entropa_core::beacon`) — so every honest node computes the same proposer without
+//! coordination, and no validator (however rich or powerful) can bias who gets
+//! selected.
 //!
 //! This is a stub VRF (hash the beacon). Production replaces `select_proposer`'s inner
 //! draw with a verifiable random function whose proof is committed on-chain.

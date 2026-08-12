@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license = "MIT"
-description = "Entropa node — mempool, cosmic-seeded proposer selection, and the consensus engine that produces and validates blocks. Networking (libp2p) layers on top of this."
+description = "Entropa node — mempool, beacon-seeded proposer selection, and the consensus engine that produces and validates blocks. Networking (libp2p) layers on top of this."
 
 [dependencies]
 entropa-core = { path = "../core" }

@@ -7,12 +7,12 @@
 > **"Entropa is boring. All we do is keep your AI agents auditable."**
 
 ## The one-liner
-**AI probes reach post-quantum consensus, seeded by the entropy of space.**
+**AI probes reach post-quantum consensus, seeded by a public randomness beacon.**
 
 ## What it actually is
 A tamper-evident, **post-quantum-signed ledger** whose validators are **AI agents (Probes)**
 that reason about what to record, and whose ordering is decided by **Proof of Entropy** — an
-unbiasable, energy-free consensus seeded by a cosmic randomness beacon.
+unbiasable, energy-free consensus seeded by [drand](https://drand.love)'s public randomness beacon.
 
 Blockchain is the *mechanism*, never the pitch. The pitch is **trust and accountability for AI**.
 
@@ -28,8 +28,8 @@ Nobody else stands at the intersection of all three. That is the moat.
 ## Proof of Entropy (PoE)
 - **No mining** — nothing to burn; zero energy consensus.
 - **No staking plutocracy** — you can't buy your way to more blocks.
-- **Unbiasable** — proposer selection is seeded by an external entropy beacon through a VRF,
-  committed on-chain and independently verifiable by every node.
+- **Unbiasable** — proposer selection is seeded by [drand](https://drand.love)'s public
+  threshold-BLS randomness beacon, committed on-chain and independently verifiable by every node.
 
 PoE sidesteps every standard criticism of crypto consensus (PoW wastes energy; PoS is rule-by-whales)
 in a single stroke.
@@ -39,7 +39,7 @@ The Probes use an LLM to *decide*, but the system around them is **deterministic
 model is probabilistic, the trust envelope is not. Every agent action follows a fixed pipeline:
 **grounded context → structured decision → validate → post-quantum sign → append to the ledger.** The chain
 is fully replayable (same inputs reproduce the same hashes), and PoE selection is a *verifiable function*
-of the beacon (a VRF), not per-run randomness. The result: **probabilistic brains, deterministic
+of the beacon, not per-run randomness. The result: **probabilistic brains, deterministic
 guarantees** — which is exactly what makes AI agents safe to rely on.
 
 ## What it's good for (not moving money)
