@@ -4,21 +4,6 @@
 
 FROM rust:1-slim-bookworm AS builder
 WORKDIR /build
-
-# Cache dependency compilation separately from source changes.
-COPY Cargo.toml Cargo.lock* ./
-COPY crates/core/Cargo.toml crates/core/Cargo.toml
-COPY crates/node/Cargo.toml crates/node/Cargo.toml
-COPY crates/api/Cargo.toml crates/api/Cargo.toml
-RUN mkdir -p crates/core/src crates/node/src crates/api/src crates/api/scryon/assets \
-    && echo "fn main() {}" > crates/api/src/main.rs \
-    && echo "" > crates/core/src/lib.rs \
-    && echo "" > crates/node/src/lib.rs \
-    && echo "" > crates/api/src/lib.rs \
-    && touch crates/api/scryon/assets/favicon.ico \
-    && cargo build --release -p entropa-api 2>/dev/null || true
-
-# Now bring in the real source and build for real.
 COPY . .
 RUN cargo build --release -p entropa-api
 
