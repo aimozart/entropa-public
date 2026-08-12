@@ -82,15 +82,15 @@ async fn main() {
             // so both see the identical value — falls back to the deterministic stub
             // if drand is unreachable.
             let live_beacon = entropa_core::beacon::sample_live().await;
-            let saved_blocks = {
+            let produced_block = {
                 let mut n = ticker.lock().unwrap();
                 let tx = demo_decision(round, n.mempool.len());
                 n.submit(tx);
                 n.live_beacon = live_beacon;
-                n.try_produce(round, now()).map(|_| n.chain.blocks.clone())
+                n.try_produce(round, now())
             };
-            if let Some(blocks) = saved_blocks {
-                persistence::save_chain(&blocks).await;
+            if let Some(block) = produced_block {
+                persistence::save_block(&block).await;
             }
             round += 1;
             tokio::time::sleep(Duration::from_secs(3)).await;

@@ -13,11 +13,12 @@ Most failure modes here are already handled by the code and the platform, not by
 - **A failed Gemini call doesn't crash anything.** `Proposer::craft` returns a `Result`; on error the round is
   logged and skipped — the Probe just tries again on its next heartbeat (every 120s). No retry loop needed to
   write, because the heartbeat *is* the retry loop.
-- **A failed persistence write doesn't lose data.** `persistence::save_chain` is best-effort: a failed GCS
-  write logs and returns; the next successful block production saves again. The in-memory chain is always the
-  source of truth for the running process regardless of whether the last save landed.
+- **A failed persistence write doesn't lose data.** `persistence::save_block` is best-effort: a failed
+  Firestore write logs and returns; only that one block's save is missed, not the whole chain's (each block is
+  its own document). The in-memory chain is always the source of truth for the running process regardless of
+  whether the last save landed.
 - **A crashed container restarts itself.** This is Cloud Run's job, not ours — if the process dies, Cloud Run
-  brings up a fresh instance, and the chain resumes from the last GCS save instead of resetting to height zero
+  brings up a fresh instance, and the chain resumes from Firestore instead of resetting to height zero
   (`crates/api/src/persistence.rs`).
 - **A bad deploy doesn't take down the live site.** Cloud Run only routes traffic to a revision once it passes
   its own health check; a build that doesn't boot never gets traffic.

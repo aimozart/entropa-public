@@ -20,7 +20,7 @@ flowchart TB
     end
     PROBES["entropa-agents<br/>Proposer Probe<br/>(Gemini on Vertex AI · deterministic envelope)"]
     CORE["entropa-core<br/>ML-DSA (FIPS-204) + blake3 chain"]
-    STORE[("GCS<br/>chain state")]
+    STORE[("Firestore<br/>chain state")]
 
     API --> NODE
     PROBES --> NODE
@@ -80,11 +80,14 @@ in the real brain.
 
 - **App:** 100% Rust. Multi-stage **Docker** (`cargo build --release`).
 - **Runtime:** GCP **Cloud Run** — scale-to-zero, pay-per-request, no VMs to burn.
-- **State:** GCS (`crates/api/src/persistence.rs`) — a redeploy resumes the chain instead of resetting it.
-- **No IaC layer.** The footprint is one Cloud Run service, one bucket, a few DNS records — `gcloud run deploy
-  --source=...` *is* the reproducible-deploy story at this scale. Pulumi/Terraform were considered and
-  deliberately dropped: real infra-as-code earns its keep once there's infra worth abstracting, and there
-  isn't, yet.
+- **State:** Firestore (`crates/api/src/persistence.rs`) — each block is its own document, written once and
+  never rewritten (a save is O(1), not a re-upload of the whole chain). A redeploy resumes instead of
+  resetting. Replaced an earlier single-GCS-blob approach that re-uploaded the entire chain on every block —
+  fine for a demo, would not have scaled.
+- **No IaC layer.** The footprint is one Cloud Run service, one Firestore database, a few DNS records —
+  `gcloud run deploy --source=...` *is* the reproducible-deploy story at this scale. Pulumi/Terraform were
+  considered and deliberately dropped: real infra-as-code earns its keep once there's infra worth
+  abstracting, and there isn't, yet.
 - **Language policy:** **Rust for everything else** (`core`, `node`, `agents`, `api`, `veyl`). Not boxed in —
   **C/C++ permitted only where warranted** (a perf-critical primitive, or a mature C library with no good Rust
   equivalent). Default is Rust; reach for C/C++ deliberately, never by habit.
