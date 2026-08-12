@@ -4,7 +4,7 @@
 
 **AI probes reach post-quantum consensus, seeded by the entropy of space.**
 
-*Entropa is boring. All we do is keep you safe.*
+*Entropa is boring. All we do is keep your AI agents auditable.*
 
 [![CI](https://github.com/aimozart/entropa-public/actions/workflows/ci.yml/badge.svg)](https://github.com/aimozart/entropa-public/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-57e0c4)](LICENSE-MIT)

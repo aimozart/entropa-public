@@ -4,7 +4,7 @@
 > It is not a currency and has no mining — it is verifiable infrastructure you use like an API.
 
 ## The tagline
-> **"Entropa is boring. All we do is keep you safe."**
+> **"Entropa is boring. All we do is keep your AI agents auditable."**
 
 ## The one-liner
 **AI probes reach post-quantum consensus, seeded by the entropy of space.**
