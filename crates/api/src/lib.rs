@@ -405,6 +405,46 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::OK);
     }
 
+    /// Regression test for the 2026-08-12 incident: `/api/chain` used to dump the entire
+    /// chain unpaginated, which exceeded Cloud Run's response-size limit once the live
+    /// chain passed a few thousand blocks. Builds a chain well past the default page size
+    /// and asserts the default response stays bounded, proving pagination actually caps
+    /// it rather than just being available as an unused option.
+    #[tokio::test]
+    async fn chain_default_response_is_bounded() {
+        let probe = Probe::spawn();
+        let validators = vec![Validator::new(probe.id(), probe.pubkey_hex())];
+        let mut node = Node::new(probe, validators);
+        for i in 0..1200u64 {
+            node.try_produce(i, 1_000 + i);
+        }
+        assert!(
+            node.chain.blocks.len() > 1000,
+            "test setup must exceed the default page size"
+        );
+
+        let resp = app(AppState::new(node))
+            .oneshot(
+                Request::builder()
+                    .uri("/api/chain")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let blocks: Vec<Block> = serde_json::from_slice(&body).unwrap();
+        assert_eq!(
+            blocks.len(),
+            1000,
+            "default /api/chain response must stay capped even when the chain is much larger"
+        );
+    }
+
     #[tokio::test]
     async fn root_serves_scryon() {
         let resp = app(AppState::new(node_with_one_block()))
