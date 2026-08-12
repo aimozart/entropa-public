@@ -10,6 +10,7 @@
 ![Rust](https://img.shields.io/badge/100%25-Rust-orange)
 ![PQC](https://img.shields.io/badge/signatures-ML--DSA%20(FIPS--204)-7c8cff)
 ![Consensus](https://img.shields.io/badge/consensus-Proof%20of%20Entropy-7c8cff)
+![NIST KATs](https://img.shields.io/badge/NIST%20FIPS--204%20KATs-byte--exact-3ddc84)
 ![No mining](https://img.shields.io/badge/mining-none-lightgrey)
 
 </div>
@@ -76,6 +77,32 @@ let me prove it" primitive, not a data processor.
 
 See [`POSITIONING.md`](POSITIONING.md) for the full pitch and [`ARCHITECTURE.md`](ARCHITECTURE.md)
 for the system diagram.
+
+## Verified against NIST's own vectors
+
+The cryptography isn't "trust me, it's post-quantum." It's asserted **byte-for-byte** against
+NIST's official ACVP known-answer test vectors for ML-DSA-65 (FIPS 204), committed verbatim
+in [`crates/core/tests/vectors/`](crates/core/tests/vectors/):
+
+| What's checked | Vectors |
+|---|---|
+| `ML-DSA.KeyGen_internal` — seed ξ → public key + expanded signing key | 12 |
+| `ML-DSA.Sign_internal` — deterministic (rnd = 0³²) | 8 |
+| `ML-DSA.Sign` — full external path, including context string | 8 |
+| Verification of NIST's own reference signatures | 16 |
+| Rejection of tampered signatures, messages, and contexts | 8 |
+
+```bash
+cargo test -p entropa-core --test nist_kat
+```
+
+A committed subset keeps CI fast; [`fetch.sh`](crates/core/tests/vectors/fetch.sh) pulls the
+complete upstream set so the claim is independently checkable, not cherry-picked.
+
+> **This is a correctness artifact, not a certification.** Entropa is **not** FIPS-validated
+> and claims no such thing — formal validation requires an accredited CMVP/CAVP lab. What
+> these tests show is that the implementation is built to the standard and demonstrably
+> matches it.
 
 ## This repo (open core)
 
