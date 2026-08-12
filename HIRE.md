@@ -20,6 +20,16 @@ to end, not a toy demo.
 That's the actual skill for hire: composing and orchestrating an AI-driven build the way you'd want your own
 team to run one.
 
+## How aimozart ships
+
+Sprint-focused and iterative, not a big-bang release cadence — get something real in front of users, then
+tighten it fast based on what actually breaks. Entropa's own build history is the evidence, not a claim about
+process: three separate live bugs were found, root-caused, fixed, tested, and redeployed **the same day** they
+surfaced, each one immediately followed by a regression test and a permanent guardrail so it can't silently
+recur (see [`OBSERVABILITY.md`](OBSERVABILITY.md)'s failure-modes table — every incident lists its root cause
+next to the fix that now prevents it). That's the actual working style: ship, observe, fix fast, harden, repeat
+— agile as a practice, not a slide.
+
 ## Engagement
 
 Open to **salaried, full-time** or **per-project / contract** work — architecting and running AI-driven

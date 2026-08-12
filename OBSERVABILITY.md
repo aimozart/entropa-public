@@ -36,6 +36,7 @@ extra monitoring stack — see [why not Prometheus/Grafana](#why-not-prometheusg
 |---|---|---|
 | **AI Probe decision failures** | 3+ failed Gemini calls in a 15-minute window (log-based metric over `brain: decide failed` in Cloud Run's own logs) | Auth/IAM breakage, Vertex AI quota exhaustion, a model response format change the parser can't handle — anything that will keep failing every cycle until someone looks |
 | **Cloud Run 5xx errors** | 2+ server errors in a 5-minute window | The service itself misbehaving, independent of the AI path |
+| **Heartbeat check failed** (added 2026-08-12) | A 15-minute uptime check hits `GET /api/health`, expects `"status":"ok"` in the body; alerts on the first failure | Anything that takes the whole service down (crash loop, bad deploy, out-of-memory instance stuck restarting) — fires faster and more broadly than the other two, which both need a specific *kind* of failure to accumulate first. Purpose-built so an outage doesn't sit unnoticed burning resources; see `entropa-health-heartbeat-a8YrpQoz4ug` uptime check config. |
 
 Both auto-close after 30 minutes of the condition clearing, so a transient blip doesn't leave a stale
 "firing" alert sitting around.
@@ -48,6 +49,25 @@ latency, error rate, and container CPU/memory to Cloud Monitoring for free with 
 policies above sit directly on top of that plus one log-based metric — no scraping, no exporters, no
 dashboards to maintain. Real observability infrastructure earns its keep once there's enough surface area to
 need correlating dashboards across services; a single-service demo isn't that yet.
+
+## Known failure modes (prevent recurrence, don't just fix and forget)
+
+Every incident below left behind a permanent guardrail — a test, a structural fix, or a standing rule — not
+just a one-off patch. Check this table before assuming a new symptom is novel; the full narrative for each is
+in `MILESTONES.md` (search the date).
+
+| Date | Failure | Root cause | Guardrail that now prevents it |
+|---|---|---|---|
+| 2026-08-12 | Chain corrupted at two points after ~12 rapid redeploys | Cloud Run runs old+new revisions concurrently during every deploy transition; two in-memory `Node`s both wrote blocks to the same Firestore collection | Firestore-backed leader lease (`crates/api/src/leader.rs`, 20s TTL) — only the lease holder writes. **Standing rule**: after every deploy, `gcloud run revisions list` and delete anything that isn't current — Cloud Run doesn't reliably reclaim an old revision on its own when it's still actively writing. **Standing rule**: no design partner onboarded without a 3-day soak test first (`SESSION_STATE.md` § soak criteria) — this class of bug only shows up across *repeated* live redeploys, never in a single build/test/verify pass. |
+| 2026-08-12 | `GeminiBrain` failed ~100% of heartbeats (`invalid type: map, expected a string`) | Gemini occasionally returns `payload` as a nested JSON object instead of the plain string the prompt asks for; `Decision.payload: String` had no tolerance for that | `flexible_string` deserializer (`crates/agents/src/brain.rs`) accepts either shape. Regression test `decision_tolerates_object_payload`. **General principle**: never trust an LLM's output to match its requested schema exactly — deserialize defensively, don't just format a prompt and hope. |
+| 2026-08-12 | `/api/chain` 500ing for every visitor, silently breaking the explorer + `/flow` | The endpoint dumped the entire unpaginated chain; once past a few thousand blocks it exceeded Cloud Run's response-size limit | `?limit=`/`?offset=` pagination, default most recent 1000 blocks (`crates/api/src/lib.rs`). **General principle**: any endpoint returning a collection that grows without bound over the service's lifetime needs pagination from day one, not once it breaks — audited the rest of `lib.rs` for the same pattern (mempool length is returned as a count, not the collection; every other route reads a single block), nothing else currently at risk. |
+| 2026-08-12 | Explorer/`/flow` visibly hung ("checking…"/"loading chain…") right after the fix above shipped | The pagination fix's default (1000 blocks) was still ~10.8MB of JSON — 2.4s+ server-side alone, before the browser even parsed/rendered it, on a page that live-refreshes every few seconds | Both pages now request `?limit=50` explicitly (`explorer.html`, `flow.html`) — confirmed 542KB / ~0.3s. **General principle**: "paginated" isn't the same as "fast enough for the actual default view" — check what the default request really costs a real client, not just whether it's under a hard server limit. |
+| 2026-08-12 | GCP budget alerts were blending Entropa's spend with 4 unrelated projects on the same billing account | The two pre-existing budgets (`Entropa ~/day`, `$20 card guard`) had no `projects` filter, so they tracked the whole billing account | Added `Entropa (entropa-testnet only)`, a $60/month budget filtered to `projects/1032137727494`. **General principle**: a shared billing account needs at least one project-scoped budget per project that actually matters, or a "cost is fine"/"cost spiked" reading could be about a completely different project. |
+
+**Why this table exists**: alerts had been firing on both of the bottom two bugs for a while before they were
+actually investigated (see the mailbox-routing note above) — the alert *worked*, but nothing forced a look at
+root cause vs. just clearing the noise. This table is the forcing function for the next incident: land a row
+here, not just a fix.
 
 ## Watching it yourself
 
