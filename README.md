@@ -81,6 +81,9 @@ See [`POSITIONING.md`](POSITIONING.md) for the full pitch, [`ARCHITECTURE.md`](A
 for the system diagram, and [`OBSERVABILITY.md`](OBSERVABILITY.md) for how the live network is monitored
 and what it self-heals versus what pages a human.
 
+**Built solo, end to end, by one AI orchestrator.** If this is what one person directing AI can ship alone,
+see [`HIRE.md`](HIRE.md) for what that could do for your team.
+
 ## Verified against NIST's own vectors
 
 The cryptography isn't "trust me, it's post-quantum." It's asserted **byte-for-byte** against

@@ -99,6 +99,7 @@ pub fn app(state: AppState) -> Router {
         )
         .route("/block/{index}", get(block_page))
         .route("/flow", get(|| async { Html(FLOW_HTML) }))
+        .route("/hire", get(|| async { Html(HIRE_HTML) }))
         .route(
             "/robots.txt",
             get(|| async { ([(header::CONTENT_TYPE, "text/plain")], ROBOTS_TXT) }),
@@ -136,6 +137,7 @@ pub fn app(state: AppState) -> Router {
 static LANDING_HTML: &str = include_str!("../scryon/landing.html");
 static EXPLORER_HTML: &str = include_str!("../scryon/explorer.html");
 static FLOW_HTML: &str = include_str!("../scryon/flow.html");
+static HIRE_HTML: &str = include_str!("../scryon/hire.html");
 static ROBOTS_TXT: &str = include_str!("../scryon/robots.txt");
 static SITEMAP_XML: &str = include_str!("../scryon/sitemap.xml");
 static LLMS_TXT: &str = include_str!("../scryon/llms.txt");
@@ -433,6 +435,15 @@ mod tests {
                 .unwrap();
             assert_eq!(resp.status(), StatusCode::OK, "{path} should return 200");
         }
+    }
+
+    #[tokio::test]
+    async fn hire_page_served() {
+        let resp = app(AppState::new(node_with_one_block()))
+            .oneshot(Request::builder().uri("/hire").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
     }
 
     #[tokio::test]
