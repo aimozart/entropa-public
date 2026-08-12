@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Entropa — Scryon</title>
+<meta name="description" content="Entropa: AI probes reach post-quantum consensus, seeded by the entropy of space. Entropa is boring. All we do is keep you safe." />
+<style>
+  :root {
+    --bg: #05060a;
+    --bg2: #0b0d16;
+    --panel: #0f1220cc;
+    --border: #23273a;
+    --text: #e7e9f5;
+    --dim: #9aa0c0;
+    --accent: #7c8cff;
+    --accent2: #57e0c4;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: radial-gradient(1200px 800px at 70% 20%, #1a1030 0%, var(--bg) 55%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    min-height: 100vh;
+  }
+  a { color: var(--accent2); }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 48px 20px 80px; }
+  header.hero { text-align: center; padding: 60px 0 30px; }
+  .logo { font-size: 52px; font-weight: 800; letter-spacing: -1px; }
+  .logo .cursor { color: var(--accent); animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .tagline { font-size: 20px; color: var(--dim); margin-top: 10px; }
+  .oneliner { font-size: 15px; color: var(--dim); margin-top: 6px; max-width: 560px; margin-left: auto; margin-right: auto; }
+  .badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
+  .badge {
+    font-size: 12px; padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--dim); background: #ffffff08;
+  }
+  .badge.ok { color: var(--accent2); border-color: #57e0c455; }
+  section.panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; margin-top: 24px; backdrop-filter: blur(6px);
+  }
+  section.panel h2 { margin-top: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; }
+  .stat { text-align: center; }
+  .stat .n { font-size: 28px; font-weight: 700; }
+  .stat .l { font-size: 12px; color: var(--dim); margin-top: 2px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+  .dot.green { background: #3ddc84; box-shadow: 0 0 8px #3ddc84; }
+  .dot.yellow { background: #f5c542; box-shadow: 0 0 8px #f5c542; animation: pulse 1.2s ease-in-out infinite; }
+  .dot.red { background: #ff5c5c; box-shadow: 0 0 8px #ff5c5c; }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+  #sky {
+    position: relative; height: 320px; border-radius: 14px; overflow: hidden;
+    background: #05060a; border: 1px solid var(--border); margin-top: 10px;
+  }
+  #sky .star { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--accent2);
+    box-shadow: 0 0 10px var(--accent2); transform: translate(-50%, -50%); }
+  #sky .link { position: absolute; height: 1px; background: linear-gradient(90deg, transparent, #7c8cff66, transparent);
+    transform-origin: 0 0; }
+  table.blocks { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.blocks th, table.blocks td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); }
+  table.blocks th { color: var(--dim); font-weight: 600; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--dim); }
+  footer { text-align: center; color: var(--dim); font-size: 13px; margin-top: 50px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="logo">Entropa<span class="cursor">_</span></div>
+    <div class="tagline">Entropa is boring. All we do is keep you safe.</div>
+    <div class="oneliner">AI probes reach post-quantum consensus, seeded by the entropy of space.</div>
+    <div class="badges">
+      <span class="badge ok">✓ ML-DSA (NIST FIPS-204)</span>
+      <span class="badge ok">✓ Proof of Entropy</span>
+      <span class="badge">100% Rust</span>
+      <span class="badge">No mining · no token</span>
+    </div>
+  </header>
+
+  <!-- Static, real content — renders and is fully readable with JavaScript disabled.
+       The panels below are filled in server-side-equivalent at page load via fetch();
+       if JS is off, the descriptive text here still explains the network honestly. -->
+  <section class="panel">
+    <h2>Network</h2>
+    <div class="stat-grid">
+      <div class="stat"><div class="n" id="stat-height">—</div><div class="l">blocks (height)</div></div>
+      <div class="stat"><div class="n" id="stat-consensus">Proof of Entropy</div><div class="l">consensus</div></div>
+      <div class="stat"><div class="n" id="stat-sig">ML-DSA</div><div class="l">signature scheme</div></div>
+      <div class="stat"><div class="n"><span class="dot yellow" id="status-dot"></span><span id="stat-status">checking…</span></div><div class="l">status</div></div>
+    </div>
+    <noscript>
+      <p style="color:var(--dim); font-size:13px; margin-top:14px;">
+        JavaScript is off — that's fine. This page works either way. Enable JavaScript for the live
+        constellation view and auto-refreshing stats; the network itself, and every block it produces,
+        is independently verifiable via the JSON API at <code>/api/chain</code>.
+      </p>
+    </noscript>
+  </section>
+
+  <section class="panel">
+    <h2>The constellation — live</h2>
+    <div id="sky" aria-label="Live star-map of the Entropa network"></div>
+    <p style="color:var(--dim); font-size:13px; margin-top:12px;">
+      Each star is a block, post-quantum signed by the AI Probe that proposed it. New stars appear as the
+      network reaches Proof-of-Entropy consensus — seeded by the entropy of space, not mined.
+    </p>
+  </section>
+
+  <section class="panel">
+    <h2>Recent blocks</h2>
+    <table class="blocks" id="blocks-table">
+      <thead><tr><th>#</th><th>Proposer</th><th>Beacon</th><th>Hash</th></tr></thead>
+      <tbody id="blocks-body">
+        <tr><td colspan="4" class="mono">loading chain…</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    Entropa · a post-quantum trust layer for AI agents · <a href="https://github.com/aimozart/entropa">source</a>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  function short(s, n) { return s && s.length > n ? s.slice(0, n) + "…" : (s || ""); }
+
+  // green = confirmed live, yellow = checking (in progress), red = confirmed offline/error.
+  function setStatus(state, label) {
+    const dot = document.getElementById("status-dot");
+    dot.className = "dot " + state;
+    document.getElementById("stat-status").textContent = label;
+  }
+
+  async function refresh() {
+    setStatus("yellow", "checking…");
+    try {
+      const [healthRes, chainRes] = await Promise.all([
+        fetch("/api/health"), fetch("/api/chain")
+      ]);
+      if (!healthRes.ok || !chainRes.ok) throw new Error("bad response");
+      const health = await healthRes.json();
+      const chain = await chainRes.json();
+
+      document.getElementById("stat-height").textContent = health.height ?? chain.length;
+      document.getElementById("stat-consensus").textContent = health.consensus || "Proof of Entropy";
+      document.getElementById("stat-sig").textContent = health.signature || "ML-DSA";
+      setStatus(health.status === "ok" ? "green" : "red", health.status === "ok" ? "live" : "degraded");
+
+      renderSky(chain);
+      renderTable(chain);
+    } catch (e) {
+      setStatus("red", "offline");
+    }
+  }
+
+  function renderSky(chain) {
+    const sky = document.getElementById("sky");
+    sky.innerHTML = "";
+    const w = sky.clientWidth || 900, h = sky.clientHeight || 320;
+    const n = Math.max(chain.length, 1);
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      // Deterministic pseudo-random placement from block hash, so the sky is stable per block.
+      const seed = (chain[i] && chain[i].hash) || String(i);
+      let x = 0, y = 0;
+      for (let c = 0; c < seed.length; c++) { x = (x * 31 + seed.charCodeAt(c)) % 997; y = (y * 17 + seed.charCodeAt(c)) % 613; }
+      const px = (x / 997) * (w - 40) + 20;
+      const py = (y / 613) * (h - 40) + 20;
+      pts.push([px, py]);
+      const star = document.createElement("div");
+      star.className = "star";
+      star.style.left = px + "px";
+      star.style.top = py + "px";
+      star.title = chain[i] ? ("Block " + chain[i].index + " · " + chain[i].proposer_id) : "genesis";
+      sky.appendChild(star);
+    }
+    for (let i = 1; i < pts.length; i++) {
+      const [x1, y1] = pts[i - 1], [x2, y2] = pts[i];
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+      const link = document.createElement("div");
+      link.className = "link";
+      link.style.left = x1 + "px";
+      link.style.top = y1 + "px";
+      link.style.width = len + "px";
+      link.style.transform = "rotate(" + angle + "deg)";
+      sky.appendChild(link);
+    }
+  }
+
+  function renderTable(chain) {
+    const body = document.getElementById("blocks-body");
+    const rows = chain.slice(-8).reverse().map(function (b) {
+      return "<tr><td>" + b.index + "</td><td class='mono'>" + b.proposer_id +
+        "</td><td class='mono'>" + short(b.beacon, 18) +
+        "</td><td class='mono'>" + short(b.hash, 14) + "</td></tr>";
+    });
+    body.innerHTML = rows.length ? rows.join("") : "<tr><td colspan='4' class='mono'>no blocks yet</td></tr>";
+  }
+
+  refresh();
+  setInterval(refresh, 3000);
+})();
+</script>
+</body>
+</html>

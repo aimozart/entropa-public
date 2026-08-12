@@ -1,0 +1,16 @@
+[package]
+name = "entropa-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license = "MIT"
+description = "Entropa core — post-quantum (ML-DSA / NIST FIPS-204) blockchain primitives: probes, transactions, blocks, and a verifiable chain seeded by a cosmic entropy beacon."
+
+[dependencies]
+ml-dsa = "0.1.1"
+blake3 = { workspace = true }
+sha3 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }

@@ -1,0 +1,18 @@
+[package]
+name = "entropa-api"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license = "MIT"
+description = "Entropa API — axum JSON gateway over the chain, plus the Scryon explorer page. Serves the live star-map."
+
+[dependencies]
+entropa-core = { path = "../core" }
+entropa-node = { path = "../node" }
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
