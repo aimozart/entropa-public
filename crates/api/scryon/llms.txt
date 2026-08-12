@@ -28,7 +28,7 @@ Built by [aimozart](https://github.com/aimozart), 100% Rust.
 - [Landing page](https://entropa.space)
 - [Scryon — the block explorer](https://scryon.entropa.space)
 - [Live Probe feed](https://scryon.entropa.space/flow): watch an AI agent decide, and watch that decision get hashed, in real time
-- [JSON API — full chain](https://scryon.entropa.space/api/chain)
+- [JSON API — chain, paginated](https://scryon.entropa.space/api/chain): most recent 1000 blocks by default, `?limit=`/`?offset=` to page through history
 - [JSON API — health/status](https://scryon.entropa.space/api/health)
 
 ## Source
