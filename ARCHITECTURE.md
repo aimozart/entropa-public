@@ -8,10 +8,10 @@
 ```mermaid
 flowchart TB
   subgraph Customer["Customer side"]
-    Agents["AI Agents"] --> Detector["Detector Probe<br/>(lightweight: attests + flags)"]
+    Agents["AI Agents / partner systems"]
   end
 
-  Detector -->|"hash + PQC signature<br/>(never the raw data)"| API
+  Agents -->|"POST /api/tx { from, kind, payload }<br/>bearer API key · payload is caller-chosen, typically a hash"| API
 
   subgraph GCP["GCP · headless · scale-to-zero"]
     API["entropa-api<br/>axum gateway · Cloud Run"]
@@ -29,7 +29,7 @@ flowchart TB
   end
 
   Beacon["Public randomness beacon (drand)"] --> PoE
-  API --> Scryon["Scryon explorer<br/>static · Firebase Hosting"]
+  API --> Scryon["Scryon explorer + /flow<br/>same Cloud Run binary, Host-header routed<br/>HTML embedded at compile time"]
 ```
 
 ## The "prove it, don't trust me" flow
@@ -39,22 +39,21 @@ sequenceDiagram
   participant C as Customer / AI Agent
   participant E as Entropa API
   participant L as Ledger (PoE)
-  C->>E: POST /attest { hash }   %% only a hash — never the data
+  C->>E: POST /api/tx { from, kind, payload }   %% payload is caller-chosen -- typically a hash
   E->>L: Proposer Probe drafts block, PQC-signs it
   L->>L: PoE picks proposer via drand's public randomness beacon
   L-->>E: block appended (constellation grows)
-  E-->>C: verifiable receipt { block, signature, timestamp }
-  Note over C,E: Later — GET /verify/{id}: prove existence at time T, reveal nothing
+  Note over C,E: GET /api/chain (paginated) or GET /block/:index — verify any block, any time, no auth needed
 ```
 
 ## Crates (cargo workspace)
 
 | Crate | Role | Status |
 |---|---|---|
-| `entropa-core` | ML-DSA/FIPS-204 Probe identities, transactions, blocks, verifiable chain | ✅ 10 tests |
+| `entropa-core` | ML-DSA/FIPS-204 Probe identities, transactions, blocks, verifiable chain | ✅ 10 tests + 5 NIST KAT tests |
 | `entropa-node` | mempool + **Proof of Entropy** consensus | ✅ 5 tests |
-| `entropa-agents` | AI Probes — production `GeminiBrain` (Vertex AI) + offline `MockBrain`; `ClaudeBrain` ships too but is a local/offline build-time tool only, never deployed | ✅ 4 tests |
-| `entropa-api` | axum JSON gateway + **Scryon** explorer | ✅ live |
+| `entropa-agents` | AI Probes — production `GeminiBrain` (Vertex AI) + offline `MockBrain`; `ClaudeBrain` ships too but is a local/offline build-time tool only, never deployed | ✅ 5 tests |
+| `entropa-api` | axum JSON gateway + **Scryon** explorer, per-key rate limiting | ✅ 12 tests |
 
 Product surface: **Scryon** (the explorer). No smart-contract DSL, no wallet — Entropa does one thing.
 
