@@ -8,7 +8,9 @@
 //! - `GET  /`            — the Scryon explorer (static HTML, works with JS off)
 //! - `GET  /assets/*`     — the aimozart / Entropa mark, embedded favicons
 //! - `GET  /api/health`  — network + consensus + signature scheme + height
-//! - `GET  /api/chain`   — every block as JSON
+//! - `GET  /api/chain`   — a page of blocks as JSON (`?limit=`, `?offset=`; defaults to the
+//!   most recent 1000 — the full chain is too large for a single response once the chain
+//!   grows past a few thousand blocks, so walk it with `offset` for anything older)
 //! - `GET  /api/head`    — the head block
 //! - `POST /api/tx`      — submit a transaction into the mempool
 //! - `GET  /block/:index` — a single block's own static page (JS off safe, never
@@ -27,7 +29,7 @@ use std::time::Duration;
 
 use axum::{error_handling::HandleErrorLayer, BoxError};
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{header, HeaderMap, StatusCode},
     response::{Html, IntoResponse},
     routing::{get, post},
@@ -177,9 +179,23 @@ async fn health(State(s): State<AppState>) -> Json<serde_json::Value> {
     }))
 }
 
-async fn chain(State(s): State<AppState>) -> Json<Vec<Block>> {
+/// `?limit=` (default 1000, capped at 2000) and `?offset=` (default: the tail of the
+/// chain, i.e. the most recent blocks) — the full chain is too large for one Cloud Run
+/// response once it grows past a few thousand blocks; walk it with `offset` for history.
+#[derive(serde::Deserialize)]
+struct ChainQuery {
+    limit: Option<usize>,
+    offset: Option<usize>,
+}
+
+async fn chain(State(s): State<AppState>, Query(q): Query<ChainQuery>) -> Json<Vec<Block>> {
     let n = s.node.lock().unwrap();
-    Json(n.chain.blocks.clone())
+    let total = n.chain.blocks.len();
+    let limit = q.limit.unwrap_or(1000).min(2000);
+    let offset = q.offset.unwrap_or_else(|| total.saturating_sub(limit));
+    let end = (offset + limit).min(total);
+    let page = n.chain.blocks.get(offset.min(total)..end).unwrap_or(&[]);
+    Json(page.to_vec())
 }
 
 async fn head(State(s): State<AppState>) -> Json<Option<Block>> {
