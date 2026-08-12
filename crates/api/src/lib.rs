@@ -70,6 +70,7 @@ pub fn app(state: AppState) -> Router {
             get(|| asset("image/png", FAVICON_512)),
         )
         .route("/block/{index}", get(block_page))
+        .route("/flow", get(|| async { Html(FLOW_HTML) }))
         .route("/api/health", get(health))
         .route("/api/chain", get(chain))
         .route("/api/head", get(head))
@@ -82,6 +83,7 @@ pub fn app(state: AppState) -> Router {
 // real searchable block explorer. Both are embedded at compile time.
 static LANDING_HTML: &str = include_str!("../scryon/landing.html");
 static EXPLORER_HTML: &str = include_str!("../scryon/explorer.html");
+static FLOW_HTML: &str = include_str!("../scryon/flow.html");
 
 /// Serve the landing page on the root domain, the explorer everywhere else
 /// (subdomain, raw Cloud Run URL, localhost during dev).
