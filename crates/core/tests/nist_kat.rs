@@ -111,14 +111,20 @@ fn nist_keygen_matches_reference_bytes() {
         );
     }
 
-    println!("✓ {} NIST keyGen vectors matched byte-for-byte", v.key_gen.len());
+    println!(
+        "✓ {} NIST keyGen vectors matched byte-for-byte",
+        v.key_gen.len()
+    );
 }
 
 /// `ML-DSA.Sign_internal`, deterministic variant (rnd = 0³²).
 #[test]
 fn nist_sign_internal_matches_reference_bytes() {
     let v = vectors();
-    assert!(!v.sig_gen_internal.is_empty(), "no internal sigGen vectors loaded");
+    assert!(
+        !v.sig_gen_internal.is_empty(),
+        "no internal sigGen vectors loaded"
+    );
 
     // The deterministic variant fixes the per-signature randomness to all zeros.
     let rnd = B32::default();
@@ -146,7 +152,10 @@ fn nist_sign_internal_matches_reference_bytes() {
 #[test]
 fn nist_sign_external_pure_matches_reference_bytes() {
     let v = vectors();
-    assert!(!v.sig_gen_external.is_empty(), "no external sigGen vectors loaded");
+    assert!(
+        !v.sig_gen_external.is_empty(),
+        "no external sigGen vectors loaded"
+    );
 
     for case in &v.sig_gen_external {
         let esk = load_sk(&case.sk);

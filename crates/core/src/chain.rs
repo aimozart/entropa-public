@@ -202,13 +202,21 @@ mod tests {
             &alice,
             1_001,
             beacon::sample(1),
-            vec![Transaction::new(alice.id(), "transfer", "10 -> PROBE-DEADBEEF")],
+            vec![Transaction::new(
+                alice.id(),
+                "transfer",
+                "10 -> PROBE-DEADBEEF",
+            )],
         );
         chain.propose(
             &founder,
             1_002,
             beacon::sample(2),
-            vec![Transaction::new("oracle", "attest", "cosmic beacon round 2")],
+            vec![Transaction::new(
+                "oracle",
+                "attest",
+                "cosmic beacon round 2",
+            )],
         );
         (chain, founder, alice)
     }

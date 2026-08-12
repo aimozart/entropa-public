@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex};
 
 use axum::{
     extract::State,
-    http::header,
+    http::{header, HeaderMap},
     response::{Html, IntoResponse},
     routing::{get, post},
     Json, Router,
@@ -74,9 +74,21 @@ pub fn app(state: AppState) -> Router {
         .with_state(state)
 }
 
-/// The Scryon explorer — static HTML, embedded at compile time.
-async fn scryon() -> Html<&'static str> {
-    Html(include_str!("../scryon/index.html"))
+// Two faces, one binary: `entropa.space` gets the marketing landing page,
+// `scryon.entropa.space` (and anything else, e.g. the raw *.run.app URL) gets the
+// real searchable block explorer. Both are embedded at compile time.
+static LANDING_HTML: &str = include_str!("../scryon/landing.html");
+static EXPLORER_HTML: &str = include_str!("../scryon/explorer.html");
+
+/// Serve the landing page on the root domain, the explorer everywhere else
+/// (subdomain, raw Cloud Run URL, localhost during dev).
+async fn scryon(headers: HeaderMap) -> Html<&'static str> {
+    let host = headers
+        .get(header::HOST)
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("");
+    let is_root = host == "entropa.space" || host == "www.entropa.space";
+    Html(if is_root { LANDING_HTML } else { EXPLORER_HTML })
 }
 
 // The aimozart / Entropa mark, embedded at compile time so the binary is self-contained.
