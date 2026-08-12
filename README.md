@@ -6,6 +6,7 @@
 
 *Entropa is boring. All we do is keep you safe.*
 
+[![CI](https://github.com/aimozart/entropa-public/actions/workflows/ci.yml/badge.svg)](https://github.com/aimozart/entropa-public/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-57e0c4)](LICENSE-MIT)
 ![Rust](https://img.shields.io/badge/100%25-Rust-orange)
 ![PQC](https://img.shields.io/badge/signatures-ML--DSA%20(FIPS--204)-7c8cff)

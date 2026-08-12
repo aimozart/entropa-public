@@ -43,12 +43,30 @@ impl AppState {
 pub fn app(state: AppState) -> Router {
     Router::new()
         .route("/", get(scryon))
-        .route("/assets/favicon.ico", get(|| asset("image/x-icon", FAVICON_ICO)))
-        .route("/assets/favicon-16.png", get(|| asset("image/png", FAVICON_16)))
-        .route("/assets/favicon-32.png", get(|| asset("image/png", FAVICON_32)))
-        .route("/assets/favicon-48.png", get(|| asset("image/png", FAVICON_48)))
-        .route("/assets/favicon-180.png", get(|| asset("image/png", FAVICON_180)))
-        .route("/assets/favicon-512.png", get(|| asset("image/png", FAVICON_512)))
+        .route(
+            "/assets/favicon.ico",
+            get(|| asset("image/x-icon", FAVICON_ICO)),
+        )
+        .route(
+            "/assets/favicon-16.png",
+            get(|| asset("image/png", FAVICON_16)),
+        )
+        .route(
+            "/assets/favicon-32.png",
+            get(|| asset("image/png", FAVICON_32)),
+        )
+        .route(
+            "/assets/favicon-48.png",
+            get(|| asset("image/png", FAVICON_48)),
+        )
+        .route(
+            "/assets/favicon-180.png",
+            get(|| asset("image/png", FAVICON_180)),
+        )
+        .route(
+            "/assets/favicon-512.png",
+            get(|| asset("image/png", FAVICON_512)),
+        )
         .route("/api/health", get(health))
         .route("/api/chain", get(chain))
         .route("/api/head", get(head))
@@ -125,7 +143,12 @@ mod tests {
     #[tokio::test]
     async fn health_ok() {
         let resp = app(AppState::new(node_with_one_block()))
-            .oneshot(Request::builder().uri("/api/health").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
@@ -134,7 +157,12 @@ mod tests {
     #[tokio::test]
     async fn chain_returns_ok() {
         let resp = app(AppState::new(node_with_one_block()))
-            .oneshot(Request::builder().uri("/api/chain").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/chain")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);

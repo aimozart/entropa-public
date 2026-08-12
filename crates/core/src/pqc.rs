@@ -52,7 +52,7 @@ impl Probe {
 /// Derive a Probe's short fingerprint from its hex public key.
 pub fn probe_id(pubkey_hex: &str) -> String {
     let digest = blake3::hash(pubkey_hex.as_bytes());
-    format!("PROBE-{}", &digest.to_hex()[..8].to_uppercase())
+    format!("PROBE-{}", digest.to_hex()[..8].to_uppercase())
 }
 
 /// Verify a hex ML-DSA signature over `msg` against a hex verifying key.
