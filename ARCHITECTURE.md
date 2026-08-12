@@ -88,7 +88,7 @@ in the real brain.
   `gcloud run deploy --source=...` *is* the reproducible-deploy story at this scale. Pulumi/Terraform were
   considered and deliberately dropped: real infra-as-code earns its keep once there's infra worth
   abstracting, and there isn't, yet.
-- **Language policy:** **Rust for everything else** (`core`, `node`, `agents`, `api`, `veyl`). Not boxed in —
+- **Language policy:** **Rust for everything else** (`core`, `node`, `agents`, `api`). Not boxed in —
   **C/C++ permitted only where warranted** (a perf-critical primitive, or a mature C library with no good Rust
   equivalent). Default is Rust; reach for C/C++ deliberately, never by habit.
 

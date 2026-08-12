@@ -131,12 +131,14 @@ cargo run -p entropa-api
 ```
 
 Open **http://localhost:8080** — a real single-node network starts immediately: genuine ML-DSA
-signatures, genuine Proof-of-Entropy block production, live on the Scryon explorer. (The demo's
-proposer is a small deterministic stand-in for the real AI Probe — see
-[`crates/api/src/main.rs`](crates/api/src/main.rs).)
+signatures, genuine Proof-of-Entropy block production seeded by [drand](https://drand.love)'s live
+public randomness beacon, live on the Scryon explorer. (The demo's proposer is a small deterministic
+stand-in for the real AI Probe — see [`crates/api/src/main.rs`](crates/api/src/main.rs). The real
+Probe, Gemini-driven on Vertex AI, lives in the private `entropa-agents` crate — see
+[`OPEN_SOURCE.md`](OPEN_SOURCE.md).)
 
 ```bash
-cargo test --workspace   # 18 tests, all real crypto and consensus logic
+cargo test --workspace   # 25 tests, all real crypto and consensus logic
 ```
 
 ## Why Rust
