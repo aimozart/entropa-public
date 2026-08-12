@@ -6,12 +6,19 @@
 //! here is the real thing: genuine ML-DSA (FIPS-204) signatures and genuine
 //! Proof-of-Entropy consensus, every round. Open http://localhost:8080 to watch the
 //! constellation grow.
+//!
+//! Chain state persists to GCS when `ENTROPA_GCS_BUCKET` is set (see `persistence.rs`)
+//! — so a redeploy resumes the network instead of resetting it to height zero. Off
+//! Cloud Run (e.g. local `cargo run`), persistence is a no-op and the chain is
+//! in-memory only, exactly as before.
+
+mod persistence;
 
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use entropa_api::{app, AppState};
-use entropa_core::{Probe, Transaction};
+use entropa_core::{Chain, Probe, Transaction};
 use entropa_node::{Node, Validator};
 
 fn now() -> u64 {
@@ -37,18 +44,37 @@ async fn main() {
     // One validator node — the sole proposer in this demo network.
     let probe = Probe::spawn();
     let validators = vec![Validator::new(probe.id(), probe.pubkey_hex())];
-    let state = AppState::new(Node::new(probe, validators));
+    let mut node = Node::new(probe, validators);
 
-    // Background: each round, decide → submit → produce a real Proof-of-Entropy block.
+    // Resume from persisted state if configured and available; otherwise start fresh.
+    let mut round: u64 = 0;
+    if let Some(blocks) = persistence::load_chain().await {
+        let candidate = Chain { blocks };
+        if candidate.verify().is_ok() {
+            round = candidate.len() as u64;
+            println!("📦 resumed chain from persisted state — height {round}");
+            node.chain = candidate;
+        } else {
+            eprintln!("persistence: loaded chain failed verification — starting fresh");
+        }
+    }
+
+    let state = AppState::new(node);
+
+    // Background: each round, decide → submit → produce a real Proof-of-Entropy block,
+    // then persist (best-effort — a failed save just gets caught by the next one).
     let ticker = Arc::clone(&state.node);
     tokio::spawn(async move {
-        let mut round: u64 = 0;
+        let mut round = round;
         loop {
-            {
+            let saved_blocks = {
                 let mut n = ticker.lock().unwrap();
                 let tx = demo_decision(round, n.mempool.len());
                 n.submit(tx);
-                let _ = n.try_produce(round, now());
+                n.try_produce(round, now()).map(|_| n.chain.blocks.clone())
+            };
+            if let Some(blocks) = saved_blocks {
+                persistence::save_chain(&blocks).await;
             }
             round += 1;
             tokio::time::sleep(Duration::from_secs(3)).await;

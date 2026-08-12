@@ -65,6 +65,22 @@
         nothing to speculate on — just verifiable infrastructure you use like an API. We never hold
         your data, only its proof.
       </p>
+      <p class="explain">
+        Under the hood it <em>is</em> a blockchain — a tamper-evident, hash-linked, post-quantum-signed
+        chain of blocks. But it's deliberately <strong>not decentralized</strong>: there's no token to
+        mine, no smart-contract platform, no general-purpose programmability. Entropa does
+        <strong>one thing, and one thing only</strong> — produce and verify tamper-proof, quantum-safe
+        attestations — and it's built as plainly as that one job requires. Integrate from any language
+        over a plain REST API; no SDK, no special smart-contract language needed.
+      </p>
+      <p class="explain">
+        <strong>Why you'd need this:</strong> if you're deploying AI agents that take real actions, you
+        can't prove what they did after the fact — logs can be edited, "trust our records" isn't an
+        answer. And the crypto almost everyone uses today (RSA, ECDSA) has an expiration date once
+        quantum computers arrive; adversaries are already harvesting encrypted data now to decrypt
+        later. Entropa gives you a record that's tamper-evident by construction, signed with
+        cryptography built to survive that future — and it never sees your actual data, only its hash.
+      </p>
       <div class="cta">
         <a class="btn primary" href="https://scryon.entropa.space" target="_blank" rel="noopener noreferrer">Explore the live network →</a>
         <a class="btn ghost" href="https://github.com/aimozart/entropa-public" target="_blank" rel="noopener noreferrer">Source (MIT)</a>
