@@ -34,11 +34,7 @@ pub async fn sample_live() -> Option<String> {
         return None;
     }
     let round: DrandRound = resp.json().await.ok()?;
-    Some(format!(
-        "DRAND-{}-{}",
-        round.round,
-        &round.randomness[..16]
-    ))
+    Some(format!("DRAND-{}-{}", round.round, &round.randomness[..16]))
 }
 
 /// Deterministic offline fallback — derives a value from the round number. Used in

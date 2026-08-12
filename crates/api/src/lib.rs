@@ -203,7 +203,11 @@ async fn block_page(
         hash = esc(&block.hash),
         sig = esc(&block.signature),
         tx_count = block.transactions.len(),
-        tx_plural = if block.transactions.len() == 1 { "" } else { "s" },
+        tx_plural = if block.transactions.len() == 1 {
+            ""
+        } else {
+            "s"
+        },
     );
 
     Html(html).into_response()

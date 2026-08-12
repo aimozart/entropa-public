@@ -32,7 +32,10 @@ async fn access_token(client: &reqwest::Client) -> Option<String> {
     if !resp.status().is_success() {
         return None;
     }
-    resp.json::<TokenResponse>().await.ok().map(|t| t.access_token)
+    resp.json::<TokenResponse>()
+        .await
+        .ok()
+        .map(|t| t.access_token)
 }
 
 /// Load the persisted chain, if a bucket is configured and an object exists. Returns
@@ -42,9 +45,8 @@ pub async fn load_chain() -> Option<Vec<Block>> {
     let bucket = bucket()?;
     let client = reqwest::Client::new();
     let token = access_token(&client).await?;
-    let url = format!(
-        "https://storage.googleapis.com/storage/v1/b/{bucket}/o/{OBJECT_NAME}?alt=media"
-    );
+    let url =
+        format!("https://storage.googleapis.com/storage/v1/b/{bucket}/o/{OBJECT_NAME}?alt=media");
     let resp = client
         .get(&url)
         .bearer_auth(token)

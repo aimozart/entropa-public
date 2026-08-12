@@ -93,7 +93,8 @@ impl Node {
     /// Accept a peer's block: enforce the consensus rule (correct proposer for the
     /// block's beacon), then full structural + post-quantum validation.
     pub fn accept(&mut self, block: Block) -> Result<(), NodeError> {
-        let idx = select_proposer(&self.validators, &block.beacon).ok_or(NodeError::NoValidators)?;
+        let idx =
+            select_proposer(&self.validators, &block.beacon).ok_or(NodeError::NoValidators)?;
         if self.validators[idx].id != block.proposer_id {
             return Err(NodeError::WrongProposer);
         }
@@ -129,7 +130,11 @@ mod tests {
         // Give every node the same pending transaction each round.
         for round in 0..6u64 {
             for node in nodes.iter_mut() {
-                node.submit(Transaction::new("user", "transfer", format!("round {round}")));
+                node.submit(Transaction::new(
+                    "user",
+                    "transfer",
+                    format!("round {round}"),
+                ));
             }
             let b = beacon::sample(round);
             let sel = select_proposer(&nodes[0].validators, &b).unwrap();
@@ -145,7 +150,10 @@ mod tests {
         // All nodes agree on height and each chain fully verifies.
         let heights: Vec<usize> = nodes.iter().map(|n| n.height()).collect();
         assert_eq!(heights, vec![6, 6, 6]);
-        let heads: Vec<String> = nodes.iter().map(|n| n.chain.head().unwrap().hash.clone()).collect();
+        let heads: Vec<String> = nodes
+            .iter()
+            .map(|n| n.chain.head().unwrap().hash.clone())
+            .collect();
         assert!(heads.iter().all(|h| h == &heads[0]));
         for node in &nodes {
             assert_eq!(node.chain.verify(), Ok(()));
@@ -160,7 +168,9 @@ mod tests {
         let sel = select_proposer(&nodes[0].validators, &b).unwrap();
         let wrong = (sel + 1) % 3;
         // The wrong node self-drafts a block for this round (bypassing is_proposer).
-        let bad = nodes[wrong].chain.draft(&nodes[wrong].probe, 42, b, Vec::new());
+        let bad = nodes[wrong]
+            .chain
+            .draft(&nodes[wrong].probe, 42, b, Vec::new());
         // A different node must reject it: wrong proposer for this beacon.
         let victim = (sel + 2) % 3;
         assert_eq!(nodes[victim].accept(bad), Err(NodeError::WrongProposer));
