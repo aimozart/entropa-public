@@ -49,6 +49,19 @@ guarantees** — which is exactly what makes AI agents safe to rely on.
 3. **Provenance & attestation** — "this output came from this agent, signed, at this time."
 4. **Verifiable randomness as a service** — the PoE beacon, sold standalone.
 
+## Which AI-governance standards this helps satisfy
+Nearly every current AI-governance framework converges on the same requirement: **prove what an AI system did,
+when, and that the record wasn't altered afterward.** That's the one thing Entropa does, so it's a genuine fit
+for the record-keeping/traceability piece of each of these — not a full compliance program, just the
+tamper-evident audit trail underneath it:
+
+| Framework | The requirement Entropa's ledger addresses |
+|---|---|
+| **EU AI Act, Article 12** | High-risk AI systems must have automatic, tamper-resistant logging enabling traceability over the system's lifetime. |
+| **NIST AI Risk Management Framework** | *Govern* and *Manage* functions call for documented, verifiable records of AI system behavior. |
+| **ISO/IEC 42001** (AI management systems) | Requires maintained, controlled "documented information" on AI system operation. |
+| **IAPP AIGP body of knowledge** | Accountability principle: organizations must be able to demonstrate, with evidence, what an AI system did. |
+
 ## How it's worth something — utility, not speculation
 Entropa is monetized like **Stripe or Twilio**, not like a memecoin:
 - **Metered service.** Pay (in plain currency) per PQC attestation, per verifiable-randomness draw,
@@ -77,8 +90,7 @@ node to the agents to the gateway. Entropa is **100% Rust**.
 ## Architecture (all Rust, cargo workspace)
 - `entropa-core` — Probe identities (ML-DSA/FIPS-204), transactions, blocks, verifiable chain.
 - `entropa-node` — mempool + **Proof of Entropy** consensus engine.
-- `entropa-agents` — the AI Probes (Claude-driven, with an offline fallback).
+- `entropa-agents` — the AI Probes (production brain: Gemini on Vertex AI, with an offline fallback).
 - `entropa-api` — axum JSON gateway + the **Scryon** explorer.
-- `entropa-veyl` *(planned)* — **Veyl**, a smart-contract DSL.
 
-Product surface: **Scryon** (explorer), **Veyl** (contract language), **Entrove** (wallet).
+Product surface: **Scryon** (the explorer). No smart-contract DSL, no wallet — Entropa does one thing.
