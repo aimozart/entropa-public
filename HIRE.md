@@ -23,12 +23,12 @@ team to run one.
 ## Engagement
 
 Open to **salaried, full-time** or **per-project / contract** work — architecting and running AI-driven
-builds for your team, not just consulting on the side. Equity considered for startups in place of, or
-alongside, cash.
+builds for your team, not just consulting on the side. For startups, equity is always part of the package
+**in addition to** full salary and benefits — never a substitute for either.
 
 - Full-time
 - Contract / per-project
-- Equity (startups)
+- + equity, always, for startups
 - Remote
 
 ## Why a handle, not a name
