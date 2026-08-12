@@ -37,6 +37,30 @@ Deterministic agentic architecture: the AI is probabilistic, the ledger is not. 
 follows a fixed pipeline — decide → validate → post-quantum sign → append — so the result is always
 a replayable, non-repudiable record, however the model reasoned to get there.
 
+## Why you need Entropa
+
+If you're deploying AI agents that take real actions — approving transactions, moving data,
+making decisions on your behalf — you have a problem most teams haven't solved yet:
+
+- **You can't prove what your agent did.** Logs can be edited. Databases can be modified after the
+  fact. If an agent's decision is ever questioned — by a customer, an auditor, a regulator — "trust
+  our logs" is not an answer. You need a record that's tamper-evident *by construction*, not by
+  policy.
+- **Your current crypto has an expiration date.** RSA and ECDSA — what almost every system uses
+  today — will be broken by a sufficiently capable quantum computer. Adversaries are already
+  harvesting encrypted data now to decrypt later ("harvest now, decrypt later"). If your agents'
+  actions need to stay provably authentic for years, signing them with pre-quantum crypto is
+  signing with a clock running out.
+- **AI accountability is becoming a requirement, not a nice-to-have.** Regulators, enterprise
+  customers, and your own risk team increasingly want to know: what did the agent decide, when, and
+  can you prove it wasn't altered afterward. Entropa is built to answer that with math, not paperwork.
+- **You shouldn't have to hand over your data to prove it.** Most audit/compliance tooling wants
+  your raw data. Entropa only ever sees a hash — you get provable integrity without a new place for
+  your data to leak from.
+
+In short: **if an AI agent does something today, and someone asks you to prove it in five years,
+Entropa is the layer that makes "yes, and here's the signed, quantum-safe proof" possible.**
+
 ## What it's for
 
 Not moving money. **Proof.**
