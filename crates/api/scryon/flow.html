@@ -91,7 +91,7 @@
 
   async function refresh() {
     try {
-      const res = await fetch("/api/chain");
+      const res = await fetch("/api/chain?limit=50");
       if (!res.ok) throw new Error("bad response");
       const chain = await res.json();
 

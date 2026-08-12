@@ -149,7 +149,7 @@
   async function refresh() {
     setStatus("yellow", "checking…");
     try {
-      const [healthRes, chainRes] = await Promise.all([fetch("/api/health"), fetch("/api/chain")]);
+      const [healthRes, chainRes] = await Promise.all([fetch("/api/health"), fetch("/api/chain?limit=50")]);
       if (!healthRes.ok || !chainRes.ok) throw new Error("bad response");
       const health = await healthRes.json();
       chain = await chainRes.json();
