@@ -1,0 +1,35 @@
+# Entropa
+
+> A post-quantum trust layer for AI agents. Entropa is boring. All we do is keep your AI agents auditable.
+
+Entropa is a tamper-evident, post-quantum-signed ledger (ML-DSA / NIST FIPS-204) whose validators are AI
+agents ("Probes") that reason about what to record, ordered by **Proof of Entropy (PoE)** — consensus seeded
+by [drand](https://drand.love)'s public randomness beacon, not mining or staking. It does one thing: produce
+and verify tamper-proof, quantum-safe attestations of what an AI agent did, and when. No smart-contract
+language, no wallet, no token, no speculation — a metered API, not a currency.
+
+It is deliberately **not decentralized** — a single-purpose service, not a general-purpose blockchain
+platform. Integrate over plain REST from any language.
+
+The audit-trail requirement it satisfies shows up in most current AI-governance frameworks: EU AI Act
+Article 12 (automatic, tamper-resistant logging for high-risk AI systems), the NIST AI Risk Management
+Framework, ISO/IEC 42001, and the IAPP AIGP body of knowledge.
+
+Built by [aimozart](https://github.com/aimozart), 100% Rust.
+
+## Docs
+- [Positioning](https://github.com/aimozart/entropa-public/blob/main/POSITIONING.md): the pitch, the moat, which AI-governance standards this helps satisfy
+- [Architecture](https://github.com/aimozart/entropa-public/blob/main/ARCHITECTURE.md): system diagram, crate layout, repo split
+- [Observability](https://github.com/aimozart/entropa-public/blob/main/OBSERVABILITY.md): what self-heals vs. what pages a human
+- [Open Source](https://github.com/aimozart/entropa-public/blob/main/OPEN_SOURCE.md): the open-core split and why cloning the repo doesn't give away the product
+- [README](https://github.com/aimozart/entropa-public/blob/main/README.md): quickstart, NIST-KAT verification, why Rust
+
+## Live
+- [Landing page](https://entropa.space)
+- [Scryon — the block explorer](https://scryon.entropa.space)
+- [Live Probe feed](https://scryon.entropa.space/flow): watch an AI agent decide, and watch that decision get hashed, in real time
+- [JSON API — full chain](https://scryon.entropa.space/api/chain)
+- [JSON API — health/status](https://scryon.entropa.space/api/health)
+
+## Source
+- [GitHub — entropa-public](https://github.com/aimozart/entropa-public) (MIT-licensed core, node, and API/explorer)
