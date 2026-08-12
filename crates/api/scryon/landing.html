@@ -44,12 +44,12 @@
 <body>
   <canvas id="net"></canvas>
   <div class="grid"></div>
-  <div class="orb o1" data-depth="0.05"></div>
-  <div class="orb o2" data-depth="0.09"></div>
-  <div class="orb o3" data-depth="0.07"></div>
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
 
   <div class="wrap">
-    <div class="card" data-depth="-0.02">
+    <div class="card">
       <div class="logo">Entropa<b>_</b></div>
       <div class="tagline">Entropa is boring. All we do is keep you safe.</div>
       <div class="oneliner">AI probes reach post-quantum consensus, seeded by the entropy of space.</div>
@@ -99,10 +99,6 @@
     requestAnimationFrame(tick);
   }
   tick();
-  addEventListener('mousemove',function(e){mx=e.clientX-W/2;my=e.clientY-H/2;
-    var els=document.querySelectorAll('[data-depth]');
-    for(var k=0;k<els.length;k++){var dp=parseFloat(els[k].getAttribute('data-depth'));
-      els[k].style.transform='translate('+(mx*dp)+'px,'+(my*dp)+'px)';}});
 })();
 </script>
 </body>
