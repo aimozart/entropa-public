@@ -76,8 +76,9 @@ Not moving money. **Proof.**
 Entropa never holds your data — only a hash, a signature, and a timestamp. It's a "don't trust me,
 let me prove it" primitive, not a data processor.
 
-See [`POSITIONING.md`](POSITIONING.md) for the full pitch and [`ARCHITECTURE.md`](ARCHITECTURE.md)
-for the system diagram.
+See [`POSITIONING.md`](POSITIONING.md) for the full pitch, [`ARCHITECTURE.md`](ARCHITECTURE.md)
+for the system diagram, and [`OBSERVABILITY.md`](OBSERVABILITY.md) for how the live network is monitored
+and what it self-heals versus what pages a human.
 
 ## Verified against NIST's own vectors
 

@@ -18,9 +18,9 @@ flowchart TB
     subgraph NODE["entropa-node"]
       Mempool["Mempool"] --> PoE["Proof of Entropy<br/>(cosmic-beacon consensus)"]
     end
-    PROBES["entropa-agents<br/>Proposer / Validator / Auditor Probes<br/>(Claude-driven · deterministic envelope)"]
+    PROBES["entropa-agents<br/>Proposer Probe<br/>(Gemini on Vertex AI · deterministic envelope)"]
     CORE["entropa-core<br/>ML-DSA (FIPS-204) + blake3 chain"]
-    STORE[("Firestore / GCS<br/>chain state")]
+    STORE[("GCS<br/>chain state")]
 
     API --> NODE
     PROBES --> NODE
@@ -53,11 +53,10 @@ sequenceDiagram
 |---|---|---|
 | `entropa-core` | ML-DSA/FIPS-204 Probe identities, transactions, blocks, verifiable chain | ✅ 10 tests |
 | `entropa-node` | mempool + **Proof of Entropy** consensus | ✅ 5 tests |
-| `entropa-agents` | AI Probes — Claude Proposer + offline MockBrain | ✅ 4 tests |
-| `entropa-api` | axum JSON gateway + **Scryon** explorer | 🚧 WIP |
-| `entropa-veyl` | **Veyl** — smart-contract DSL | planned |
+| `entropa-agents` | AI Probes — production `GeminiBrain` (Vertex AI) + offline `MockBrain`; `ClaudeBrain` ships too but is a local/offline build-time tool only, never deployed | ✅ 4 tests |
+| `entropa-api` | axum JSON gateway + **Scryon** explorer | ✅ live |
 
-Product surface: **Scryon** (explorer) · **Veyl** (contract DSL) · **Entrove** (wallet).
+Product surface: **Scryon** (the explorer). No smart-contract DSL, no wallet — Entropa does one thing.
 
 ## Repo split — public vs. proprietary source
 
@@ -66,24 +65,26 @@ fully readable in git history once pushed. So the split is by **directory + pipe
 
 | Piece | Lives in | Ships via |
 |---|---|---|
-| `entropa-core`, `entropa-node`, `entropa-api`/Scryon, docs | `~/entropa-public/` → GitHub `aimozart/entropa` | public repo |
-| `entropa-agents` (Probe brain) + private planning docs (`SESSION_STATE.md`, `MILESTONES.md`, `PROMO.md`) | `~/entropa-chain/` → **private** source (Gitea) | never touches GitHub |
-| Proprietary build | **Cloud Build**, triggered from the private Gitea source | compiles the container |
-| Proprietary artifact | **Artifact Registry** (private repo) | only the *compiled image* exists here — source never leaves Gitea |
-| Runtime | **Cloud Run**, pulls from Artifact Registry | — |
+| `entropa-core`, `entropa-node`, `entropa-api`/Scryon, docs | `~/entropa-public/` → GitHub `aimozart/entropa-public` | public repo |
+| `entropa-agents` (the real Probe brain) + private planning docs | `~/entropa-chain/` → **private** source (Gitea) | never touches GitHub |
+| Production build | **Cloud Build**, from the private source directly (`gcloud run deploy --source=...`) | compiles the container |
+| Runtime | **Cloud Run**, serves the compiled image | — |
 
 The proprietary Rust source for `entropa-agents` is never uploaded anywhere public or semi-public — only a
-compiled container artifact moves through the GCP pipeline. **`~/entropa-public/` split is a TODO** — see
-`SESSION_STATE.md`.
+compiled container image moves through the GCP pipeline. The two repos are kept in sync by hand for the shared
+crates (`core`/`node`/`api`); `entropa-api/src/main.rs` is the one deliberate exception that's allowed to
+diverge, since the public build is self-contained (no `entropa-agents` dependency) and the private build wires
+in the real brain.
 
 ## Build & infrastructure
 
 - **App:** 100% Rust. Multi-stage **Docker** (`cargo build --release`).
 - **Runtime:** GCP **Cloud Run** — scale-to-zero, pay-per-request, no VMs to burn.
-- **Registry:** Artifact Registry. **State:** Firestore or GCS. **Static Scryon:** Firebase Hosting.
-- **IaC:** **Pulumi (Go)** is the infrastructure base — provisions the GCP resources (Cloud Run, Artifact
-  Registry, Firestore/GCS, Firebase Hosting). *(Pulumi has no production Rust SDK; Go is its systems-grade
-  language.)*
+- **State:** GCS (`crates/api/src/persistence.rs`) — a redeploy resumes the chain instead of resetting it.
+- **No IaC layer.** The footprint is one Cloud Run service, one bucket, a few DNS records — `gcloud run deploy
+  --source=...` *is* the reproducible-deploy story at this scale. Pulumi/Terraform were considered and
+  deliberately dropped: real infra-as-code earns its keep once there's infra worth abstracting, and there
+  isn't, yet.
 - **Language policy:** **Rust for everything else** (`core`, `node`, `agents`, `api`, `veyl`). Not boxed in —
   **C/C++ permitted only where warranted** (a perf-critical primitive, or a mature C library with no good Rust
   equivalent). Default is Rust; reach for C/C++ deliberately, never by habit.
