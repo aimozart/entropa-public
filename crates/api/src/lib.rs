@@ -6,6 +6,7 @@
 //!
 //! Routes:
 //! - `GET  /`            — the Scryon explorer (static HTML, works with JS off)
+//! - `GET  /assets/*`     — the aimozart / Entropa mark, embedded favicons
 //! - `GET  /api/health`  — network + consensus + signature scheme + height
 //! - `GET  /api/chain`   — every block as JSON
 //! - `GET  /api/head`    — the head block
@@ -15,7 +16,8 @@ use std::sync::{Arc, Mutex};
 
 use axum::{
     extract::State,
-    response::Html,
+    http::header,
+    response::{Html, IntoResponse},
     routing::{get, post},
     Json, Router,
 };
@@ -41,6 +43,12 @@ impl AppState {
 pub fn app(state: AppState) -> Router {
     Router::new()
         .route("/", get(scryon))
+        .route("/assets/favicon.ico", get(|| asset("image/x-icon", FAVICON_ICO)))
+        .route("/assets/favicon-16.png", get(|| asset("image/png", FAVICON_16)))
+        .route("/assets/favicon-32.png", get(|| asset("image/png", FAVICON_32)))
+        .route("/assets/favicon-48.png", get(|| asset("image/png", FAVICON_48)))
+        .route("/assets/favicon-180.png", get(|| asset("image/png", FAVICON_180)))
+        .route("/assets/favicon-512.png", get(|| asset("image/png", FAVICON_512)))
         .route("/api/health", get(health))
         .route("/api/chain", get(chain))
         .route("/api/head", get(head))
@@ -51,6 +59,18 @@ pub fn app(state: AppState) -> Router {
 /// The Scryon explorer — static HTML, embedded at compile time.
 async fn scryon() -> Html<&'static str> {
     Html(include_str!("../scryon/index.html"))
+}
+
+// The aimozart / Entropa mark, embedded at compile time so the binary is self-contained.
+static FAVICON_ICO: &[u8] = include_bytes!("../scryon/assets/favicon.ico");
+static FAVICON_16: &[u8] = include_bytes!("../scryon/assets/favicon-16.png");
+static FAVICON_32: &[u8] = include_bytes!("../scryon/assets/favicon-32.png");
+static FAVICON_48: &[u8] = include_bytes!("../scryon/assets/favicon-48.png");
+static FAVICON_180: &[u8] = include_bytes!("../scryon/assets/favicon-180.png");
+static FAVICON_512: &[u8] = include_bytes!("../scryon/assets/favicon-512.png");
+
+async fn asset(content_type: &'static str, bytes: &'static [u8]) -> impl IntoResponse {
+    ([(header::CONTENT_TYPE, content_type)], bytes)
 }
 
 async fn health(State(s): State<AppState>) -> Json<serde_json::Value> {
