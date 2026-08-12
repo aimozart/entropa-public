@@ -11,72 +11,69 @@
 <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png" />
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon-180.png" />
 <style>
-  :root {
-    --bg: #05060a;
-    --bg2: #0b0d16;
-    --panel: #0f1220cc;
-    --border: #23273a;
-    --text: #e7e9f5;
-    --dim: #9aa0c0;
-    --accent: #7c8cff;
-    --accent2: #57e0c4;
-  }
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0; padding: 0;
-    background: radial-gradient(1200px 800px at 70% 20%, #1a1030 0%, var(--bg) 55%), var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
-    min-height: 100vh;
-  }
-  a { color: var(--accent2); }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 48px 20px 80px; }
-  header.hero { text-align: center; padding: 60px 0 30px; }
-  .logo { font-size: 52px; font-weight: 800; letter-spacing: -1px; }
-  .logo .cursor { color: var(--accent); animation: blink 1.1s steps(1) infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
-  .tagline { font-size: 20px; color: var(--dim); margin-top: 10px; }
-  .oneliner { font-size: 15px; color: var(--dim); margin-top: 6px; max-width: 560px; margin-left: auto; margin-right: auto; }
-  .badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
-  .badge {
-    font-size: 12px; padding: 6px 12px; border-radius: 999px;
-    border: 1px solid var(--border); color: var(--dim); background: #ffffff08;
-  }
-  .badge.ok { color: var(--accent2); border-color: #57e0c455; }
-  section.panel {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
-    padding: 24px; margin-top: 24px; backdrop-filter: blur(6px);
-  }
-  section.panel h2 { margin-top: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); }
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; }
-  .stat { text-align: center; }
-  .stat .n { font-size: 28px; font-weight: 700; }
-  .stat .l { font-size: 12px; color: var(--dim); margin-top: 2px; }
-  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
-  .dot.green { background: #3ddc84; box-shadow: 0 0 8px #3ddc84; }
-  .dot.yellow { background: #f5c542; box-shadow: 0 0 8px #f5c542; animation: pulse 1.2s ease-in-out infinite; }
-  .dot.red { background: #ff5c5c; box-shadow: 0 0 8px #ff5c5c; }
-  @keyframes pulse { 50% { opacity: 0.35; } }
-  #sky {
-    position: relative; height: 320px; border-radius: 14px; overflow: hidden;
-    background: #05060a; border: 1px solid var(--border); margin-top: 10px;
-  }
-  #sky .star { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--accent2);
-    box-shadow: 0 0 10px var(--accent2); transform: translate(-50%, -50%); }
-  #sky .link { position: absolute; height: 1px; background: linear-gradient(90deg, transparent, #7c8cff66, transparent);
-    transform-origin: 0 0; }
-  table.blocks { width: 100%; border-collapse: collapse; font-size: 13px; }
-  table.blocks th, table.blocks td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); }
-  table.blocks th { color: var(--dim); font-weight: 600; }
-  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--dim); }
-  footer { text-align: center; color: var(--dim); font-size: 13px; margin-top: 50px; }
+  :root{--bg:#070a16;--head:#f5f7fd;--muted:#8a97bd;--line:#233056;--accent2:#34d1ff}
+  *{box-sizing:border-box}
+  html,body{min-height:100%;margin:0}
+  body{background:var(--bg);color:#c7d0e6;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  #net{position:fixed;inset:0;z-index:0;display:block}
+  .orb{position:fixed;border-radius:50%;filter:blur(70px);opacity:.55;z-index:1;pointer-events:none;will-change:transform}
+  .o1{width:520px;height:520px;background:radial-gradient(circle,#7c5cff,transparent 70%);top:-120px;left:-80px}
+  .o2{width:460px;height:460px;background:radial-gradient(circle,#22d3ee,transparent 70%);bottom:-120px;right:-60px}
+  .o3{width:380px;height:380px;background:radial-gradient(circle,#e24bff,transparent 70%);top:40%;left:55%}
+  .grid{position:fixed;inset:-50%;z-index:0;background-image:linear-gradient(rgba(129,140,248,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(129,140,248,.06) 1px,transparent 1px);background-size:44px 44px;transform:perspective(500px) rotateX(60deg);animation:drift 18s linear infinite;pointer-events:none}
+  @keyframes drift{from{background-position:0 0}to{background-position:0 44px}}
+
+  .wrap{position:relative;z-index:3;min-height:100vh;padding:24px}
+  .container{max-width:980px;margin:0 auto}
+
+  header.hero{text-align:center;padding:60px 0 30px}
+  .logo{font-size:52px;font-weight:800;letter-spacing:-2px;color:var(--head)}
+  .logo b{background:linear-gradient(135deg,#7c5cff,#e24bff 55%,#34d1ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .cursor{display:inline-block;width:.5ch;background:linear-gradient(135deg,#7c5cff,#34d1ff);animation:blink 1.1s step-end infinite;margin-left:2px}
+  @keyframes blink{50%{opacity:0}}
+  .tagline{font-size:20px;color:#dfe4f7;margin-top:10px}
+  .oneliner{font-size:15px;color:var(--muted);margin-top:6px;max-width:560px;margin-left:auto;margin-right:auto}
+  .badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+  .badge{font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid rgba(129,140,248,.28);color:#a9b4dd;background:rgba(129,140,248,.06)}
+  .badge.ok{color:#5ce8c9;border-color:rgba(92,232,201,.35)}
+
+  section.panel{backdrop-filter:blur(6px);background:rgba(10,14,30,.45);border:1px solid rgba(129,140,248,.18);border-radius:22px;padding:26px 28px;margin-top:22px;box-shadow:0 20px 70px rgba(4,7,18,.45)}
+  section.panel h2{margin-top:0;font-size:14px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px}
+  .stat{text-align:center}
+  .stat .n{font-size:26px;font-weight:700;color:var(--head)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle}
+  .dot.green{background:#5ce8c9;box-shadow:0 0 8px #5ce8c9}
+  .dot.yellow{background:#f5c542;box-shadow:0 0 8px #f5c542;animation:pulse 1.2s ease-in-out infinite}
+  .dot.red{background:#ff5c5c;box-shadow:0 0 8px #ff5c5c}
+  @keyframes pulse{50%{opacity:.35}}
+
+  #sky{position:relative;height:280px;border-radius:16px;overflow:hidden;background:rgba(4,7,18,.4);border:1px solid rgba(129,140,248,.14);margin-top:10px}
+  #sky .star{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--accent2);box-shadow:0 0 10px var(--accent2);transform:translate(-50%,-50%)}
+  #sky .link{position:absolute;height:1px;background:linear-gradient(90deg,transparent,#7c5cff66,transparent);transform-origin:0 0}
+
+  table.blocks{width:100%;border-collapse:collapse;font-size:13px}
+  table.blocks th,table.blocks td{text-align:left;padding:8px 6px;border-bottom:1px solid rgba(129,140,248,.14)}
+  table.blocks th{color:var(--muted);font-weight:600}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted)}
+  a{color:var(--accent2)}
+  footer{text-align:center;color:var(--muted);font-size:13px;margin:50px 0 20px}
 </style>
 </head>
 <body>
-<div class="wrap">
+  <canvas id="net"></canvas>
+  <div class="grid"></div>
+  <div class="orb o1" data-depth="0.05"></div>
+  <div class="orb o2" data-depth="0.09"></div>
+  <div class="orb o3" data-depth="0.07"></div>
+
+  <div class="wrap">
+  <div class="container">
 
   <header class="hero">
-    <div class="logo">Entropa<span class="cursor">_</span></div>
+    <div class="logo">Entropa<b>_</b><span class="cursor">&nbsp;</span></div>
     <div class="tagline">Entropa is boring. All we do is keep you safe.</div>
     <div class="oneliner">AI probes reach post-quantum consensus, seeded by the entropy of space.</div>
     <div class="badges">
@@ -87,29 +84,22 @@
     </div>
   </header>
 
-  <!-- Static, real content — renders and is fully readable with JavaScript disabled.
-       The panels below are filled in server-side-equivalent at page load via fetch();
-       if JS is off, the descriptive text here still explains the network honestly. -->
+  <!-- Static, real content — renders and is fully readable with JavaScript disabled. -->
   <section class="panel">
     <h2>What is Entropa?</h2>
-    <p style="color:var(--text); font-size:15px; line-height:1.6;">
+    <p style="color:#dfe4f7; font-size:15px; line-height:1.6;">
       Entropa is a <strong>post-quantum trust layer for AI agents</strong> — not a currency. There's
       no mining, no staking, and nothing to speculate on. Think of it as an API you'd use to get
       proof: send a hash, get back a tamper-proof, quantum-safe, timestamped receipt.
     </p>
-    <p style="color:var(--dim); font-size:14px; line-height:1.6; margin-top:10px;">
-      Every block is signed with <strong style="color:var(--text)">ML-DSA (NIST FIPS-204)</strong> —
+    <p style="color:var(--muted); font-size:14px; line-height:1.6; margin-top:10px;">
+      Every block is signed with <strong style="color:#dfe4f7">ML-DSA (NIST FIPS-204)</strong> —
       a lattice-based signature built to survive a future quantum computer. The network's validators
-      are AI <strong style="color:var(--text)">Probes</strong> that reason about what to record,
-      rather than miners burning electricity on arbitrary puzzles. And instead of mining or staking,
-      each round's proposer is chosen by <strong style="color:var(--text)">Proof of Entropy</strong> —
-      a cosmic randomness beacon that's unbiasable and computed identically by every honest node.
-      Order, drawn from the entropy of space.
-    </p>
-    <p style="color:var(--dim); font-size:14px; line-height:1.6; margin-top:10px;">
-      Entropa never holds your data — only a hash, a signature, and a timestamp. It's a
-      <em>"don't trust me, let me prove it"</em> primitive, built for AI-agent audit trails,
-      multi-agent coordination records, and provenance/attestation.
+      are AI <strong style="color:#dfe4f7">Probes</strong> that reason about what to record, rather
+      than miners burning electricity on arbitrary puzzles. And instead of mining or staking, each
+      round's proposer is chosen by <strong style="color:#dfe4f7">Proof of Entropy</strong> — a cosmic
+      randomness beacon that's unbiasable and computed identically by every honest node. Order,
+      drawn from the entropy of space.
     </p>
     <p style="margin-top:14px;">
       <a href="https://github.com/aimozart/entropa-public">Source (MIT)</a> ·
@@ -127,10 +117,10 @@
       <div class="stat"><div class="n"><span class="dot yellow" id="status-dot"></span><span id="stat-status">checking…</span></div><div class="l">status</div></div>
     </div>
     <noscript>
-      <p style="color:var(--dim); font-size:13px; margin-top:14px;">
-        JavaScript is off — that's fine. This page works either way. Enable JavaScript for the live
-        constellation view and auto-refreshing stats; the network itself, and every block it produces,
-        is independently verifiable via the JSON API at <code>/api/chain</code>.
+      <p style="color:var(--muted); font-size:13px; margin-top:14px;">
+        JavaScript is off — that's fine. This page works either way. Enable JavaScript for live
+        stats and the block feed; the network itself is independently verifiable via the JSON API
+        at <code>/api/chain</code>.
       </p>
     </noscript>
   </section>
@@ -138,9 +128,9 @@
   <section class="panel">
     <h2>The constellation — live</h2>
     <div id="sky" aria-label="Live star-map of the Entropa network"></div>
-    <p style="color:var(--dim); font-size:13px; margin-top:12px;">
-      Each star is a block, post-quantum signed by the AI Probe that proposed it. New stars appear as the
-      network reaches Proof-of-Entropy consensus — seeded by the entropy of space, not mined.
+    <p style="color:var(--muted); font-size:13px; margin-top:12px;">
+      Each star is a block, post-quantum signed by the AI Probe that proposed it. New stars appear
+      as the network reaches Proof-of-Entropy consensus — seeded by the entropy of space, not mined.
     </p>
   </section>
 
@@ -155,19 +145,45 @@
   </section>
 
   <footer>
-    Entropa · a post-quantum trust layer for AI agents · <a href="https://github.com/aimozart/entropa">source</a>
+    Entropa · a post-quantum trust layer for AI agents · <a href="https://github.com/aimozart/entropa-public">source</a>
   </footer>
-</div>
+  </div>
+  </div>
 
 <script>
 (function () {
   "use strict";
 
+  // --- Ambient particle network (background) ---
+  var c=document.getElementById('net'),x=c.getContext('2d'),W,H,pts=[],mx=0,my=0,tx=0,ty=0;
+  function size(){W=c.width=innerWidth;H=c.height=innerHeight;}
+  size();addEventListener('resize',size);
+  var N=Math.min(90,Math.floor(innerWidth/16));
+  for(var i=0;i<N;i++)pts.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.5});
+  function tick(){
+    x.clearRect(0,0,W,H);
+    tx+=(mx-tx)*.05; ty+=(my-ty)*.05;
+    for(var i=0;i<pts.length;i++){var p=pts[i];p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0||p.x>W)p.vx*=-1; if(p.y<0||p.y>H)p.vy*=-1;}
+    for(var i=0;i<pts.length;i++){for(var j=i+1;j<pts.length;j++){
+      var a=pts[i],b=pts[j],dx=a.x-b.x,dy=a.y-b.y,d=dx*dx+dy*dy;
+      if(d<19000){var o=1-d/19000;x.strokeStyle='rgba(129,140,248,'+(o*.5)+')';x.lineWidth=o*1.1;
+        x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke();}}}
+    for(var i=0;i<pts.length;i++){var p=pts[i];x.beginPath();x.arc(p.x+tx*.02,p.y+ty*.02,1.8,0,7);
+      x.fillStyle='rgba(52,209,255,.9)';x.fill();}
+    requestAnimationFrame(tick);
+  }
+  tick();
+  addEventListener('mousemove',function(e){mx=e.clientX-W/2;my=e.clientY-H/2;
+    var els=document.querySelectorAll('[data-depth]');
+    for(var k=0;k<els.length;k++){var dp=parseFloat(els[k].getAttribute('data-depth'));
+      els[k].style.transform='translate('+(mx*dp)+'px,'+(my*dp)+'px)';}});
+
+  // --- Live network data ---
   function short(s, n) { return s && s.length > n ? s.slice(0, n) + "…" : (s || ""); }
 
-  // green = confirmed live, yellow = checking (in progress), red = confirmed offline/error.
   function setStatus(state, label) {
-    const dot = document.getElementById("status-dot");
+    var dot = document.getElementById("status-dot");
     dot.className = "dot " + state;
     document.getElementById("stat-status").textContent = label;
   }
@@ -197,16 +213,15 @@
   function renderSky(chain) {
     const sky = document.getElementById("sky");
     sky.innerHTML = "";
-    const w = sky.clientWidth || 900, h = sky.clientHeight || 320;
+    const w = sky.clientWidth || 900, h = sky.clientHeight || 280;
     const n = Math.max(chain.length, 1);
     const pts = [];
     for (let i = 0; i < n; i++) {
-      // Deterministic pseudo-random placement from block hash, so the sky is stable per block.
       const seed = (chain[i] && chain[i].hash) || String(i);
-      let x = 0, y = 0;
-      for (let c = 0; c < seed.length; c++) { x = (x * 31 + seed.charCodeAt(c)) % 997; y = (y * 17 + seed.charCodeAt(c)) % 613; }
-      const px = (x / 997) * (w - 40) + 20;
-      const py = (y / 613) * (h - 40) + 20;
+      let sx = 0, sy = 0;
+      for (let ch = 0; ch < seed.length; ch++) { sx = (sx * 31 + seed.charCodeAt(ch)) % 997; sy = (sy * 17 + seed.charCodeAt(ch)) % 613; }
+      const px = (sx / 997) * (w - 40) + 20;
+      const py = (sy / 613) * (h - 40) + 20;
       pts.push([px, py]);
       const star = document.createElement("div");
       star.className = "star";
