@@ -14,6 +14,10 @@
 ![NIST KATs](https://img.shields.io/badge/NIST%20FIPS--204%20KATs-byte--exact-3ddc84)
 ![No mining](https://img.shields.io/badge/mining-none-lightgrey)
 
+[![crates.io: entropa-core](https://img.shields.io/crates/v/entropa-core.svg?label=entropa-core)](https://crates.io/crates/entropa-core)
+[![crates.io: entropa-node](https://img.shields.io/crates/v/entropa-node.svg?label=entropa-node)](https://crates.io/crates/entropa-node)
+[![Trusted Publishing](https://img.shields.io/badge/crates.io-Trusted%20Publisher%20(OIDC)-3ddc84)](https://github.com/aimozart/entropa-public/actions/workflows/publish.yml)
+
 </div>
 
 ---
