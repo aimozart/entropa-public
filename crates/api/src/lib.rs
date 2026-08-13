@@ -142,6 +142,7 @@ pub fn app(state: AppState) -> Router {
         .route("/block/{index}", get(block_page))
         .route("/flow", get(|| async { Html(FLOW_HTML) }))
         .route("/hire", get(|| async { Html(HIRE_HTML) }))
+        .route("/resume", get(|| async { Html(RESUME_HTML) }))
         .route(
             "/robots.txt",
             get(|| async { ([(header::CONTENT_TYPE, "text/plain")], ROBOTS_TXT) }),
@@ -180,6 +181,7 @@ static LANDING_HTML: &str = include_str!("../scryon/landing.html");
 static EXPLORER_HTML: &str = include_str!("../scryon/explorer.html");
 static FLOW_HTML: &str = include_str!("../scryon/flow.html");
 static HIRE_HTML: &str = include_str!("../scryon/hire.html");
+static RESUME_HTML: &str = include_str!("../scryon/resume.html");
 static ROBOTS_TXT: &str = include_str!("../scryon/robots.txt");
 static SITEMAP_XML: &str = include_str!("../scryon/sitemap.xml");
 static LLMS_TXT: &str = include_str!("../scryon/llms.txt");

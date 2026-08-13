@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Résumé — aimozart</title>
+<meta name="description" content="Backend / systems engineer. Rust, post-quantum cryptography, distributed systems, AI agent infrastructure. Built and shipped Entropa solo, end to end." />
+<link rel="icon" type="image/x-icon" href="/assets/favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon-180.png" />
+<style>
+  :root{--bg:#070a16;--head:#f5f7fd;--muted:#8a97bd;--accent2:#34d1ff}
+  *{box-sizing:border-box}
+  html,body{min-height:100%;margin:0}
+  body{background:var(--bg);color:#c7d0e6;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;max-width:860px;margin:0 auto;padding:20px 20px 0}
+  .brand{display:flex;align-items:center;gap:6px;font-weight:800;font-size:18px;color:var(--head);text-decoration:none}
+  .brand b{background:linear-gradient(135deg,#7c5cff,#e24bff 55%,#34d1ff);-webkit-background-clip:text;background-clip:text;color:transparent;animation:blink 1.1s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+  nav.top{display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:flex-end}
+  nav.top a{color:var(--muted);text-decoration:none;font-size:12.5px;white-space:nowrap}
+  nav.top a:hover{color:var(--head)}
+
+  .wrap{max-width:720px;margin:0 auto;padding:48px 24px 80px}
+  h1{font-size:28px;color:var(--head);margin:0 0 6px;line-height:1.25}
+  .sub{font-size:15.5px;color:var(--muted);margin:0 0 4px}
+  .tagline{font-size:16px;color:#dfe4f7;margin:14px 0 30px;line-height:1.5}
+
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 30px}
+  .badge{font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid rgba(129,140,248,.28);color:#a9b4dd;background:rgba(129,140,248,.06)}
+  .badge.ok{color:#5ce8c9;border-color:rgba(92,232,201,.35)}
+
+  .card{background:rgba(10,14,30,.45);border:1px solid rgba(129,140,248,.18);border-radius:18px;padding:26px 28px;margin-bottom:20px}
+  .card h2{font-size:13px;color:var(--accent2);margin:0 0 14px;text-transform:uppercase;letter-spacing:.8px}
+  .card p{color:var(--muted);font-size:14.5px;line-height:1.75;margin:0 0 12px}
+  .card p:last-child{margin-bottom:0}
+  .card strong{color:#dfe4f7}
+  .card ul{margin:0;padding-left:20px;color:var(--muted);font-size:14.5px;line-height:1.8}
+  .card li{margin-bottom:6px}
+  .card li strong{color:#dfe4f7}
+
+  .job{margin-bottom:22px}
+  .job:last-child{margin-bottom:0}
+  .job h3{font-size:15px;color:var(--head);margin:0 0 2px}
+  .job .meta{font-size:12.5px;color:var(--muted);margin:0 0 8px}
+
+  .skillrow{margin-bottom:10px}
+  .skillrow:last-child{margin-bottom:0}
+  .skillrow strong{color:#dfe4f7;font-size:13.5px}
+
+  footer{text-align:center;color:var(--muted);font-size:13px;padding:0 20px 30px}
+  footer a{color:var(--accent2)}
+</style>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/">Entropa<b>_</b></a>
+    <nav class="top">
+      <a href="/">Home</a>
+      <a href="/hire">Hire aimozart</a>
+      <a href="https://github.com/aimozart" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="wrap">
+    <h1>aimozart</h1>
+    <p class="sub">Phoenix, AZ, USA · Remote only</p>
+    <p class="tagline">Backend / Systems Engineer — Rust · Post-Quantum Cryptography · Distributed Systems · AI Agent Infrastructure</p>
+
+    <div class="badges">
+      <span class="badge ok">✓ AWS Certified Solutions Architect – Associate</span>
+      <span class="badge ok">✓ Databricks Certified Associate Developer for Apache Spark</span>
+      <span class="badge">Google for Startups Cloud Program</span>
+    </div>
+
+    <div class="card">
+      <h2>Summary</h2>
+      <p>Backend and systems engineer building <strong>Entropa</strong>, a post-quantum trust layer for AI
+      agents — a live, production Rust network with real ML-DSA (NIST FIPS-204) signatures, verified
+      byte-exact against NIST's own ACVP test vectors, and a beacon-seeded consensus mechanism (Proof of
+      Entropy). Built and shipped solo, end to end: cryptography, consensus, gateway API, CI/CD,
+      observability, incident response — real bugs found and fixed same-day, each one turned into a
+      permanent regression test.</p>
+      <p>I direct AI coding tools for a large share of implementation, and I'm the one setting architecture,
+      reviewing code closely enough to catch real bugs, and driving debugging when production breaks —
+      Entropa's own incident history is the record of that, not just a claim.</p>
+      <p>Also a data engineer with 12+ years in enterprise IT and security operations (SIEM, EDR, ITIL) plus
+      hands-on HITRUST/HIPAA compliance work, and lakehouse experience across Apache Spark, Iceberg, and
+      Delta Lake.</p>
+    </div>
+
+    <div class="card">
+      <h2>Work arrangement</h2>
+      <ul>
+        <li><strong>Remote only</strong> — personal equipment/home office; not relocating. If a role needs a
+          domain-joined/company-managed device, the company provides it.</li>
+        <li><strong>AI tooling allowance:</strong> $1,000/month for unlimited Claude usage — a standard
+          tooling cost, core to how I build.</li>
+        <li><strong>Compensation:</strong> full salary + standard benefits. Equity welcome in addition to,
+          never as a substitute for, either.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Flagship project</h2>
+      <div class="job">
+        <h3>Entropa — post-quantum trust layer for AI agents</h3>
+        <p class="meta">May 2024 – Present · github.com/aimozart/entropa-public · entropa.space</p>
+        <ul>
+          <li><strong>Post-quantum cryptography:</strong> every block signed with ML-DSA-65 (NIST FIPS-204),
+            verified byte-for-byte against NIST's official ACVP test vectors.</li>
+          <li><strong>Consensus:</strong> Proof of Entropy — proposer selection seeded by drand's public
+            randomness beacon, no mining, no staking.</li>
+          <li><strong>Production operations:</strong> Cloud Run deployment, Firestore persistence, Secret
+            Manager, Cloud Monitoring; real incidents found live, root-caused, fixed same-day, each with a
+            permanent regression test.</li>
+          <li><strong>Open-source & supply-chain security:</strong> two crates published to crates.io under
+            Trusted Publishing (OIDC) — no long-lived registry token.</li>
+          <li><strong>AI agent integration:</strong> Claude-driven decision pipeline with a fail-closed
+            safety gate between model output and any real-world action.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Technical skills</h2>
+      <div class="skillrow"><strong>Backend / Systems:</strong> Rust (async, axum), post-quantum cryptography (ML-DSA/FIPS-204), distributed consensus design, hash-linked verifiable data structures, REST API design, CI/CD (GitHub Actions, OIDC Trusted Publishing), Cloud Run, IAM least-privilege, Firestore.</div>
+      <div class="skillrow"><strong>Data Engineering:</strong> Apache Spark 3.5 (PySpark & Spark SQL + Scala), advanced SQL, Apache Iceberg, Delta Lake, medallion architecture, SCD Type 2, structured streaming, data-quality gates, performance tuning.</div>
+      <div class="skillrow"><strong>ML / AI:</strong> MLflow, XGBoost (GPU), scikit-learn, SHAP, drift monitoring, RAG/embeddings, AI-agent orchestration.</div>
+      <div class="skillrow"><strong>Cloud & Storage:</strong> GCP (Cloud Run, Cloud Build, Firestore, Secret Manager, IAM, Dataproc, BigQuery, GCS, CMEK) — primary, production hands-on. AWS (S3, EC2, IAM, KMS) — certified at Associate level.</div>
+      <div class="skillrow"><strong>Platform & Ops:</strong> Docker, Prometheus + Grafana, CI/CD, Git, Kafka/Redpanda, Linux, Python, SQL.</div>
+      <div class="skillrow"><strong>Governance & Security:</strong> data lineage & catalogs, HIPAA/HITRUST, SOC 2, IAM least-privilege, SIEM/EDR.</div>
+    </div>
+
+    <div class="card">
+      <h2>Certifications & recognition</h2>
+      <ul>
+        <li><strong>AWS Certified Solutions Architect – Associate</strong> — Amazon Web Services (Issued May 2024, valid to May 2027)</li>
+        <li><strong>Databricks Certified Associate Developer for Apache Spark (Scala)</strong> — Databricks (Issued March 2024)</li>
+        <li><strong>Google for Startups Cloud Program</strong> — accepted, Entropa</li>
+      </ul>
+      <p style="margin-top:12px">Verification links available on request.</p>
+    </div>
+
+    <div class="card">
+      <h2>Other projects</h2>
+      <div class="job">
+        <h3>Open lakehouse platform</h3>
+        <p class="meta">github.com/aimozart/MegaMart</p>
+        <p>Intentionally-dirty multi-source retail data through Bronze → Silver → Gold on Apache Iceberg,
+        then ML (churn/fraud with MLflow + GPU XGBoost) and a Streamlit dashboard layer. Runs locally and on
+        GCP.</p>
+      </div>
+      <div class="job">
+        <h3>Production containerized lakehouse</h3>
+        <p>Apache Spark 3.5 + Delta Lake + object storage + Kafka + automated code-quality gating, real-time
+        event streaming, medallion pipelines. Functional Scala.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Professional experience</h2>
+      <div class="job">
+        <h3>Backend / Data Engineer — Independent Projects & Continuous Practice</h3>
+        <p class="meta">Remote · December 2022 – Present</p>
+        <p>Progression from lakehouse data engineering into systems/backend engineering, with AI/ML and
+        AI-agent orchestration integrated throughout. Designed and built two complete lakehouses; directed
+        the design and build of Entropa's Rust consensus engine, cryptographic core, and gateway API; trained
+        and tracked ML models with MLflow; directed and safety-gated a Claude-driven AI-agent decision
+        pipeline in production.</p>
+      </div>
+      <div class="job">
+        <h3>Senior IT Analyst & Security Administrator</h3>
+        <p class="meta">Enterprise manufacturing, global fleet · June 2019 – August 2022</p>
+        <p>Governed enterprise EDR across a global fleet; administered PAM for zero-trust credential
+        security; engineered automated OS imaging and patch-management, neutralizing zero-day exposure.</p>
+      </div>
+      <div class="job">
+        <h3>Desktop & Systems Support Engineer</h3>
+        <p class="meta">Enterprise IT services, retail client · April 2018 – June 2019</p>
+        <p>Led rapid remediation during mission-critical outages, restoring 24/7 retail application uptime;
+        authored SOPs and remediation documentation.</p>
+      </div>
+      <div class="job">
+        <h3>Information Security & Compliance Analyst</h3>
+        <p class="meta">Healthcare chart-retrieval, HITRUST-certified org · April 2014 – October 2017</p>
+        <p>Co-authored the enterprise security-policy framework, drove remediation resulting in official
+        HITRUST certification and continuous HIPAA compliance; managed secure PHI chain of custody.</p>
+      </div>
+      <div class="job">
+        <h3>Level 3 Linux Systems Engineer</h3>
+        <p class="meta">Web hosting infrastructure provider · July 2012 – February 2014</p>
+        <p>Managed technical escalations for 120+ enterprise accounts; server hardening, VPS security,
+        database optimization on Ubuntu/RHEL.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Education</h2>
+      <p><strong>Coursework toward B.S., Information Technology</strong> — network security, systems
+      administration, database management, enterprise architecture. 2008 – 2011.</p>
+    </div>
+  </div>
+
+  <footer>
+    <a href="/hire">Get in touch</a> · <a href="https://github.com/aimozart" target="_blank" rel="noopener noreferrer">GitHub</a> · <a href="/">Entropa</a>
+  </footer>
+</body>
+</html>

@@ -105,7 +105,7 @@
   @keyframes blink{50%{opacity:0}}
   .tagline{font-size:20px;color:#dfe4f7;margin:18px 0 6px}
   .oneliner{font-size:15px;color:var(--muted);max-width:480px;margin:0 auto}
-  .footnote{font-size:11px;color:var(--muted);opacity:.65;margin-top:6px}
+  .footnote{font-size:14px;color:#a9b4dd;opacity:.9;margin-top:8px;font-weight:600}
   .badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:24px}
   .badge{font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid rgba(129,140,248,.28);color:#a9b4dd;background:rgba(129,140,248,.06)}
   .badge.ok{color:#5ce8c9;border-color:rgba(92,232,201,.35)}
@@ -115,6 +115,9 @@
   .btn{display:inline-block;padding:12px 24px;border-radius:999px;font-weight:700;font-size:14px;text-decoration:none}
   .btn.primary{background:linear-gradient(135deg,#7c5cff,#34d1ff);color:#04070f;box-shadow:0 10px 30px rgba(124,92,255,.35)}
   .btn.ghost{border:1px solid rgba(129,140,248,.35);color:#dfe4f7}
+  .btn.small{padding:8px 16px;font-size:12px;font-weight:600}
+  .hero-explain{margin-top:14px}
+  .hero-arch-cta{margin-top:14px;margin-bottom:0}
   footer{position:relative;z-index:3;text-align:center;color:var(--muted);font-size:13px;padding:0 20px 30px}
   footer a{color:var(--accent2)}
 
@@ -186,6 +189,8 @@
       <a href="https://github.com/aimozart/entropa-public/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener noreferrer">Architecture doc</a>
       <a href="https://github.com/aimozart/entropa-public/blob/main/OBSERVABILITY.md" target="_blank" rel="noopener noreferrer">Observability</a>
       <a href="https://github.com/aimozart/entropa-public" target="_blank" rel="noopener noreferrer">Source</a>
+      <a href="https://crates.io/crates/entropa-core" target="_blank" rel="noopener noreferrer">crates.io</a>
+      <a href="/resume">Résumé</a>
       <a href="/hire">Hire aimozart</a>
     </nav>
   </header>
@@ -196,11 +201,24 @@
       <div class="tagline">Entropa is boring. All we do is keep your AI agents auditable. For pennies.<sup>*</sup></div>
       <div class="oneliner">AI probes reach post-quantum consensus, seeded by a public randomness beacon.</div>
       <div class="footnote">* $0.01 per attestation</div>
+      <p class="explain hero-explain">
+        <strong>Agent logs, audit trails, usage, actions — it isn't as simple as it sounds.</strong> Doing
+        it right means tamper-evidence, post-quantum signatures, and a verifiable chain of custody, not
+        just a database row you could edit later. Let us handle that infrastructure for you.
+      </p>
+      <div class="how-cta hero-arch-cta">
+        <a class="btn small ghost" href="#architecture">See the architecture ↓</a>
+      </div>
       <div class="badges">
         <span class="badge ok">✓ ML-DSA (NIST FIPS-204)</span>
         <span class="badge ok">✓ Proof of Entropy</span>
         <span class="badge">100% Rust</span>
         <span class="badge">No mining · no token</span>
+      </div>
+      <div class="badges" style="margin-top:8px">
+        <a class="badge" href="https://crates.io/crates/entropa-core" target="_blank" rel="noopener noreferrer" style="text-decoration:none">📦 entropa-core</a>
+        <a class="badge" href="https://crates.io/crates/entropa-node" target="_blank" rel="noopener noreferrer" style="text-decoration:none">📦 entropa-node</a>
+        <a class="badge ok" href="https://github.com/aimozart/entropa-public/actions/workflows/publish.yml" target="_blank" rel="noopener noreferrer" style="text-decoration:none">✓ Trusted Publisher (OIDC)</a>
       </div>
       <p class="explain">
         Entropa is a <strong>post-quantum trust layer for AI agents</strong> — not a currency. Send
@@ -369,6 +387,7 @@
     <a href="https://github.com/aimozart/entropa-public/blob/main/POSITIONING.md" target="_blank" rel="noopener noreferrer">Positioning</a> ·
     <a href="https://github.com/aimozart/entropa-public/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener noreferrer">Architecture</a> ·
     <a href="https://github.com/aimozart/entropa-public/blob/main/OBSERVABILITY.md" target="_blank" rel="noopener noreferrer">Observability</a> ·
+    <a href="https://crates.io/crates/entropa-core" target="_blank" rel="noopener noreferrer">crates.io</a> ·
     <a href="/hire">Hire aimozart</a>
   </footer>
 
