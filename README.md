@@ -11,7 +11,7 @@
 ![Rust](https://img.shields.io/badge/100%25-Rust-orange)
 ![PQC](https://img.shields.io/badge/signatures-ML--DSA%20(FIPS--204)-7c8cff)
 ![Consensus](https://img.shields.io/badge/consensus-Proof%20of%20Entropy-7c8cff)
-![NIST KATs](https://img.shields.io/badge/NIST%20FIPS--204%20KATs-byte--exact-3ddc84)
+[![NIST KATs](https://img.shields.io/badge/NIST%20FIPS--204%20KATs-byte--exact-3ddc84)](#verified-against-nists-own-vectors)
 ![No mining](https://img.shields.io/badge/mining-none-lightgrey)
 
 [![crates.io: entropa-core](https://img.shields.io/crates/v/entropa-core.svg?label=entropa-core)](https://crates.io/crates/entropa-core)
