@@ -5,9 +5,12 @@ edition.workspace = true
 authors.workspace = true
 license = "MIT"
 description = "Entropa node — mempool, beacon-seeded proposer selection, and the consensus engine that produces and validates blocks. Networking (libp2p) layers on top of this."
+repository = "https://github.com/aimozart/entropa-public"
+homepage = "https://entropa.space"
+readme = "README.md"
 
 [dependencies]
-entropa-core = { path = "../core" }
+entropa-core = { path = "../core", version = "0.1" }
 blake3 = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }

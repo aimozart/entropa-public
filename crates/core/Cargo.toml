@@ -5,6 +5,9 @@ edition.workspace = true
 authors.workspace = true
 license = "MIT"
 description = "Entropa core — post-quantum (ML-DSA / NIST FIPS-204) blockchain primitives: probes, transactions, blocks, and a verifiable chain seeded by a public randomness beacon."
+repository = "https://github.com/aimozart/entropa-public"
+homepage = "https://entropa.space"
+readme = "README.md"
 
 [dependencies]
 ml-dsa = "0.1.1"
