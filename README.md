@@ -8,11 +8,11 @@
 
 [![CI](https://github.com/aimozart/entropa-public/actions/workflows/ci.yml/badge.svg)](https://github.com/aimozart/entropa-public/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-57e0c4)](LICENSE-MIT)
-![Rust](https://img.shields.io/badge/100%25-Rust-orange)
-![PQC](https://img.shields.io/badge/signatures-ML--DSA%20(FIPS--204)-7c8cff)
-![Consensus](https://img.shields.io/badge/consensus-Proof%20of%20Entropy-7c8cff)
+[![Rust](https://img.shields.io/badge/100%25-Rust-orange)](#why-rust)
+[![PQC](https://img.shields.io/badge/signatures-ML--DSA%20(FIPS--204)-7c8cff)](https://csrc.nist.gov/pubs/fips/204/final)
+[![Consensus](https://img.shields.io/badge/consensus-Proof%20of%20Entropy-7c8cff)](https://drand.love)
 [![NIST KATs](https://img.shields.io/badge/NIST%20FIPS--204%20KATs-byte--exact-3ddc84)](#verified-against-nists-own-vectors)
-![No mining](https://img.shields.io/badge/mining-none-lightgrey)
+[![No mining](https://img.shields.io/badge/mining-none-lightgrey)](#what-this-is)
 
 [![crates.io: entropa-core](https://img.shields.io/crates/v/entropa-core.svg?label=entropa-core)](https://crates.io/crates/entropa-core)
 [![crates.io: entropa-node](https://img.shields.io/crates/v/entropa-node.svg?label=entropa-node)](https://crates.io/crates/entropa-node)
