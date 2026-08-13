@@ -1,6 +1,6 @@
 # Entropa
 
-> A post-quantum trust layer for AI agents. Entropa is boring. All we do is keep your AI agents auditable.
+> A post-quantum trust layer for AI agents. Entropa is boring. All we do is keep your AI agents auditable. For pennies.* (*$0.01/attestation)
 
 Entropa is a tamper-evident, post-quantum-signed ledger (ML-DSA / NIST FIPS-204) whose validators are AI
 agents ("Probes") that reason about what to record, ordered by **Proof of Entropy (PoE)** — consensus seeded

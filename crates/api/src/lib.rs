@@ -212,7 +212,7 @@ async fn health(State(s): State<AppState>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "status": "ok",
         "network": "Entropa",
-        "tagline": "Entropa is boring. All we do is keep your AI agents auditable.",
+        "tagline": "Entropa is boring. All we do is keep your AI agents auditable. For pennies. ($0.01/attestation)",
         "consensus": entropa_node::consensus::NAME,
         "signature": "ML-DSA (NIST FIPS-204)",
         "height": n.height(),
