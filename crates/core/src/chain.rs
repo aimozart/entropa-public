@@ -187,6 +187,46 @@ impl Chain {
     pub fn head(&self) -> Option<&Block> {
         self.blocks.last()
     }
+
+    /// Recover the longest valid prefix from a possibly gappy or corrupted set of
+    /// blocks — the situation after loading from storage where a single missed or
+    /// malformed write left a hole in the history.
+    ///
+    /// Blocks are sorted by index, then verified sequentially from genesis via the
+    /// same checks [`Chain::try_append`] enforces (contiguous index, linked hash,
+    /// recomputed digest, valid PQC signature). Verification stops at the first
+    /// block that fails any check; everything before that point is kept.
+    ///
+    /// This replaces all-or-nothing verification, where a single missing block
+    /// anywhere in tens of thousands discarded the *entire* chain back to zero on
+    /// resume. Now a gap costs only the blocks after it, not the real history
+    /// before it.
+    pub fn recover_longest_valid_prefix(mut blocks: Vec<Block>) -> Chain {
+        blocks.sort_by_key(|b| b.index);
+        let mut chain = Chain::default();
+        for block in blocks {
+            let expected = chain.blocks.len() as u64;
+            if block.index < expected {
+                // A stale duplicate of an index we've already accepted (e.g. a
+                // retried write that landed twice) — not a gap, just skip it.
+                continue;
+            }
+            if chain.try_append(block).is_err() {
+                break;
+            }
+        }
+        chain
+    }
+}
+
+/// Pure policy decision, kept separate from I/O so it's directly testable: did
+/// recovery have to discard anything? If so, the caller must never keep writing
+/// into the same storage namespace the discarded data lived in — see
+/// `persistence.rs`'s epoch rotation, which is the actual guarantee that a future
+/// gap can only ever cost the *current* epoch's un-recovered tail, never a past
+/// epoch's history.
+pub fn rollback_detected(loaded_count: usize, recovered_len: usize) -> bool {
+    recovered_len < loaded_count
 }
 
 #[cfg(test)]
@@ -265,6 +305,190 @@ mod tests {
         let rogue = Probe::spawn();
         let foreign = Chain::default().draft(&rogue, 5, beacon::sample(9), Vec::new());
         assert_eq!(chain.try_append(foreign), Err(ChainError::BadIndex(3)));
+    }
+
+    #[test]
+    fn recovers_full_chain_when_no_gap() {
+        let (chain, _, _) = sample_chain();
+        let recovered = Chain::recover_longest_valid_prefix(chain.blocks.clone());
+        assert_eq!(recovered.len(), 3);
+        assert_eq!(recovered.verify(), Ok(()));
+    }
+
+    #[test]
+    fn recovers_longest_valid_prefix_after_gap() {
+        // Simulates a single missed Firestore write in the middle of the chain —
+        // the exact real-world scenario that used to discard the ENTIRE chain
+        // (26,000+ blocks, in production) on the next resume. One missing block
+        // must now cost only the blocks after it, not the whole history.
+        let (chain, _, _) = sample_chain();
+        let mut blocks = chain.blocks.clone();
+        blocks.remove(1); // block index 1 never made it to storage
+        let recovered = Chain::recover_longest_valid_prefix(blocks);
+        // Block 2 can't attach without block 1 present, so only genesis survives —
+        // but genesis (real history) is preserved instead of being wiped to zero.
+        assert_eq!(recovered.len(), 1);
+        assert_eq!(recovered.verify(), Ok(()));
+    }
+
+    #[test]
+    fn recovers_prefix_when_tail_is_corrupted() {
+        let (mut chain, _, _) = sample_chain();
+        chain.blocks[2].transactions[0].payload = "TAMPERED".into();
+        let recovered = Chain::recover_longest_valid_prefix(chain.blocks.clone());
+        assert_eq!(recovered.len(), 2);
+        assert_eq!(recovered.verify(), Ok(()));
+    }
+
+    #[test]
+    fn recover_returns_empty_chain_when_genesis_itself_is_bad() {
+        let (mut chain, _, _) = sample_chain();
+        chain.blocks[0].hash = "0".repeat(64);
+        let recovered = Chain::recover_longest_valid_prefix(chain.blocks.clone());
+        assert!(recovered.is_empty());
+    }
+
+    /// Builds a long, fully valid chain — the scale this needs to hold up at is
+    /// tens of thousands of blocks in production, not three.
+    fn long_valid_chain(n: usize) -> Chain {
+        let founder = Probe::spawn();
+        let mut chain = Chain::genesis(&founder, 1_000, beacon::sample(0));
+        for i in 1..n {
+            chain.propose(
+                &founder,
+                1_000 + i as u64,
+                beacon::sample(i as u64),
+                vec![Transaction::new(founder.id(), "attest", format!("round {i}"))],
+            );
+        }
+        chain
+    }
+
+    #[test]
+    fn recovers_full_1000_block_chain_with_no_corruption() {
+        let chain = long_valid_chain(1000);
+        let recovered = Chain::recover_longest_valid_prefix(chain.blocks.clone());
+        assert_eq!(recovered.len(), 1000);
+        assert_eq!(recovered.verify(), Ok(()));
+    }
+
+    #[test]
+    fn single_missing_block_near_the_end_costs_only_the_tail() {
+        // The exact production shape: 999 good blocks, then one silently missing
+        // write near the very end (index 999 of 1000).
+        let chain = long_valid_chain(1000);
+        let mut blocks = chain.blocks.clone();
+        blocks.remove(999);
+        let recovered = Chain::recover_longest_valid_prefix(blocks);
+        assert_eq!(recovered.len(), 999, "must keep all 999 good blocks, not discard everything");
+        assert_eq!(recovered.verify(), Ok(()));
+    }
+
+    #[test]
+    fn single_missing_block_near_the_start_costs_almost_everything() {
+        // The other extreme: if the gap is near genesis, most of the chain is
+        // unrecoverable by definition (hash-linking requires the predecessor) —
+        // this is expected and correct, not a bug. What matters is it's exactly
+        // this much loss and no more (not the whole 1000, and not zero).
+        let chain = long_valid_chain(1000);
+        let mut blocks = chain.blocks.clone();
+        blocks.remove(5);
+        let recovered = Chain::recover_longest_valid_prefix(blocks);
+        assert_eq!(recovered.len(), 5);
+        assert_eq!(recovered.verify(), Ok(()));
+    }
+
+    #[test]
+    fn multiple_gaps_stops_at_the_first_one_only() {
+        let chain = long_valid_chain(1000);
+        let mut blocks = chain.blocks.clone();
+        blocks.remove(700); // second gap — never reached, since the first gap wins
+        blocks.remove(300); // first gap encountered during sequential replay
+        let recovered = Chain::recover_longest_valid_prefix(blocks);
+        assert_eq!(recovered.len(), 300);
+        assert_eq!(recovered.verify(), Ok(()));
+    }
+
+    #[test]
+    fn recovery_is_immune_to_arbitrary_input_order() {
+        // Firestore's list API is expected to return blocks pre-sorted by index,
+        // but recovery must not silently depend on that — feed it in reverse and
+        // in a shuffled order and confirm identical results either way.
+        let chain = long_valid_chain(200);
+        let mut reversed = chain.blocks.clone();
+        reversed.reverse();
+        let recovered_reversed = Chain::recover_longest_valid_prefix(reversed);
+        assert_eq!(recovered_reversed.len(), 200);
+        assert_eq!(recovered_reversed.verify(), Ok(()));
+
+        let mut shuffled = chain.blocks.clone();
+        // deterministic "shuffle": interleave odd/even indices
+        let (evens, odds): (Vec<_>, Vec<_>) =
+            shuffled.drain(..).partition(|b| b.index % 2 == 0);
+        let mut interleaved = Vec::new();
+        for pair in evens.into_iter().zip(odds.into_iter().chain(std::iter::empty())) {
+            interleaved.push(pair.1);
+            interleaved.push(pair.0);
+        }
+        let recovered_shuffled = Chain::recover_longest_valid_prefix(interleaved);
+        assert_eq!(recovered_shuffled.len(), 200);
+        assert_eq!(recovered_shuffled.verify(), Ok(()));
+    }
+
+    #[test]
+    fn duplicate_block_at_same_index_does_not_break_recovery() {
+        // A retried write landing twice (e.g. a save's retry succeeding after the
+        // caller already believed it failed) must not corrupt recovery — the
+        // second copy at an already-filled index is simply rejected, same as any
+        // other block that doesn't fit next.
+        let chain = long_valid_chain(50);
+        let mut blocks = chain.blocks.clone();
+        let dup = blocks[10].clone();
+        blocks.push(dup);
+        let recovered = Chain::recover_longest_valid_prefix(blocks);
+        assert_eq!(recovered.len(), 50);
+        assert_eq!(recovered.verify(), Ok(()));
+    }
+
+    #[test]
+    fn tampered_transaction_deep_in_a_long_chain_is_caught_and_bounded() {
+        let mut chain = long_valid_chain(500);
+        chain.blocks[250].transactions[0].payload = "FORGED".into();
+        let recovered = Chain::recover_longest_valid_prefix(chain.blocks.clone());
+        assert_eq!(recovered.len(), 250);
+        assert_eq!(recovered.verify(), Ok(()));
+    }
+
+    #[test]
+    fn forged_signature_deep_in_a_long_chain_is_caught_and_bounded() {
+        let mut chain = long_valid_chain(500);
+        let attacker = Probe::spawn();
+        let digest = block_digest(
+            chain.blocks[300].index,
+            chain.blocks[300].timestamp,
+            &chain.blocks[300].prev_hash,
+            &chain.blocks[300].beacon,
+            &chain.blocks[300].transactions,
+            &chain.blocks[300].proposer_id,
+        );
+        chain.blocks[300].signature = attacker.sign_hex(&digest);
+        let recovered = Chain::recover_longest_valid_prefix(chain.blocks.clone());
+        assert_eq!(recovered.len(), 300);
+        assert_eq!(recovered.verify(), Ok(()));
+    }
+
+    #[test]
+    fn empty_input_recovers_empty_chain_without_panicking() {
+        let recovered = Chain::recover_longest_valid_prefix(Vec::new());
+        assert!(recovered.is_empty());
+    }
+
+    #[test]
+    fn rollback_detected_flags_only_when_something_was_actually_discarded() {
+        assert!(!rollback_detected(1000, 1000), "no gap: must not flag a rollback");
+        assert!(rollback_detected(1000, 999), "any discard at all must be flagged");
+        assert!(rollback_detected(1000, 0), "total loss must be flagged");
+        assert!(!rollback_detected(0, 0), "nothing loaded, nothing recovered: not a rollback");
     }
 
     #[test]
