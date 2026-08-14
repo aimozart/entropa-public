@@ -94,9 +94,12 @@
   .brand{display:flex;align-items:center;gap:6px;font-weight:800;font-size:18px;color:var(--head);text-decoration:none}
   .brand b{background:linear-gradient(135deg,#7c5cff,#e24bff 55%,#34d1ff);-webkit-background-clip:text;background-clip:text;color:transparent;animation:blink 1.1s step-end infinite}
   @keyframes blink{50%{opacity:0}}
+  .nav-rows{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
   nav.top{display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:flex-end}
   nav.top a{color:var(--muted);text-decoration:none;font-size:12.5px;white-space:nowrap}
   nav.top a:hover{color:var(--head)}
+  nav.top.secondary a{font-size:11.5px;opacity:.75}
+  nav.top.secondary a:hover{opacity:1}
 
   .wrap{position:relative;z-index:3;min-height:calc(100vh - 60px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 24px 0}
   .card{backdrop-filter:blur(6px);background:rgba(10,14,30,.4);border:1px solid rgba(129,140,248,.18);border-radius:26px;padding:48px 52px;box-shadow:0 20px 70px rgba(4,7,18,.55);max-width:640px}
@@ -157,6 +160,7 @@
   .diagram-dot{filter:drop-shadow(0 0 4px rgba(124,92,255,.9))}
   @media(max-width:600px){
     header.top{padding:16px 16px 0}
+    .nav-rows{align-items:center}
     nav.top{justify-content:center;gap:8px 14px}
     .wrap{padding:20px 16px 0;min-height:auto}
     .card{padding:32px 22px;border-radius:20px}
@@ -179,21 +183,27 @@
 
   <header class="top">
     <a class="brand" href="/">Entropa<b>_</b></a>
-    <nav class="top">
-      <a href="#how">How it works</a>
-      <a href="#architecture">Architecture</a>
-      <a href="#standards">Standards</a>
-      <a href="#durability">Durability</a>
-      <a href="https://scryon.entropa.space" target="_blank" rel="noopener noreferrer">Explorer</a>
-      <a href="https://scryon.entropa.space/flow" target="_blank" rel="noopener noreferrer">Live Probe feed</a>
-      <a href="https://github.com/aimozart/entropa-public/blob/main/POSITIONING.md" target="_blank" rel="noopener noreferrer">Positioning</a>
-      <a href="https://github.com/aimozart/entropa-public/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener noreferrer">Architecture doc</a>
-      <a href="https://github.com/aimozart/entropa-public/blob/main/OBSERVABILITY.md" target="_blank" rel="noopener noreferrer">Observability</a>
-      <a href="https://github.com/aimozart/entropa-public" target="_blank" rel="noopener noreferrer">Source</a>
-      <a href="https://crates.io/crates/entropa-core" target="_blank" rel="noopener noreferrer">crates.io</a>
-      <a href="/resume">Résumé</a>
-      <a href="/hire">Hire aimozart</a>
-    </nav>
+    <div class="nav-rows">
+      <nav class="top">
+        <a href="#how">How it works</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#standards">Standards</a>
+        <a href="#durability">Durability</a>
+        <a href="/glossary">Glossary</a>
+        <a href="/dashboard/john-q-public">Demo</a>
+      </nav>
+      <nav class="top secondary">
+        <a href="https://scryon.entropa.space" target="_blank" rel="noopener noreferrer">Explorer</a>
+        <a href="https://scryon.entropa.space/flow" target="_blank" rel="noopener noreferrer">Live Probe feed</a>
+        <a href="https://github.com/aimozart/entropa-public/blob/main/POSITIONING.md" target="_blank" rel="noopener noreferrer">Positioning</a>
+        <a href="https://github.com/aimozart/entropa-public/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener noreferrer">Architecture doc</a>
+        <a href="https://github.com/aimozart/entropa-public/blob/main/OBSERVABILITY.md" target="_blank" rel="noopener noreferrer">Observability</a>
+        <a href="https://github.com/aimozart/entropa-public" target="_blank" rel="noopener noreferrer">Source</a>
+        <a href="https://crates.io/crates/entropa-core" target="_blank" rel="noopener noreferrer">crates.io</a>
+        <a href="/resume">Résumé</a>
+        <a href="/hire">Hire aimozart</a>
+      </nav>
+    </div>
   </header>
 
   <div class="wrap">
@@ -405,6 +415,7 @@
       </div>
     </div>
     <div class="how-cta">
+      <a class="btn ghost" href="/dashboard/john-q-public">See a real customer's dashboard →</a>
       <a class="btn ghost" href="https://crates.io/crates/entropa-core" target="_blank" rel="noopener noreferrer">Read the code & tests →</a>
     </div>
   </section>
