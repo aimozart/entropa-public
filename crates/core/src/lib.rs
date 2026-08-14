@@ -19,5 +19,5 @@ pub mod chain;
 pub mod pqc;
 
 pub use block::{block_digest, Block, Transaction};
-pub use chain::{Chain, ChainError, BIG_BANG};
+pub use chain::{rollback_detected, Chain, ChainError, BIG_BANG};
 pub use pqc::{probe_id, verify_hex, Probe};

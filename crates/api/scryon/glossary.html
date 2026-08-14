@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Glossary — Entropa</title>
+<meta name="description" content="Every term Entropa uses, explained in plain English. No prior knowledge of AI, blockchains, or cryptography required." />
+<link rel="icon" type="image/x-icon" href="/assets/favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon-180.png" />
+<style>
+  :root{--bg:#070a16;--head:#f5f7fd;--muted:#8a97bd;--accent2:#34d1ff}
+  *{box-sizing:border-box}
+  html,body{min-height:100%;margin:0}
+  body{background:var(--bg);color:#c7d0e6;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;max-width:860px;margin:0 auto;padding:20px 20px 0}
+  .brand{display:flex;align-items:center;gap:6px;font-weight:800;font-size:18px;color:var(--head);text-decoration:none}
+  .brand b{background:linear-gradient(135deg,#7c5cff,#e24bff 55%,#34d1ff);-webkit-background-clip:text;background-clip:text;color:transparent;animation:blink 1.1s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+  nav.top{display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:flex-end}
+  nav.top a{color:var(--muted);text-decoration:none;font-size:12.5px;white-space:nowrap}
+  nav.top a:hover{color:var(--head)}
+
+  .wrap{max-width:720px;margin:0 auto;padding:48px 24px 80px}
+  h1{font-size:30px;color:var(--head);margin:0 0 10px;line-height:1.25}
+  .sub{font-size:17px;color:#dfe4f7;margin:0 0 36px;line-height:1.5}
+
+  .group-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:36px 0 14px}
+  .group-title:first-of-type{margin-top:0}
+
+  .term{background:rgba(10,14,30,.45);border:1px solid rgba(129,140,248,.18);border-radius:14px;padding:18px 22px;margin-bottom:12px}
+  .term dt{font-size:15.5px;font-weight:700;color:var(--head);margin:0 0 6px}
+  .term dt .also{font-weight:400;font-size:12.5px;color:var(--muted)}
+  .term dd{margin:0;font-size:14.5px;color:#c7d0e6;line-height:1.65}
+  .term dd + dd{margin-top:8px;padding-top:8px;border-top:1px solid rgba(129,140,248,.1);font-size:13px;color:var(--muted)}
+  .term dd + dd b{color:#a9b4dd}
+
+  footer{text-align:center;color:var(--muted);font-size:13px;padding:30px 20px}
+  footer a{color:var(--accent2)}
+</style>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/">Entropa<b>_</b></a>
+    <nav class="top">
+      <a href="/">Home</a>
+      <a href="/#durability">Durability</a>
+      <a href="https://scryon.entropa.space" target="_blank" rel="noopener noreferrer">Explorer</a>
+      <a href="/hire">Hire aimozart</a>
+    </nav>
+  </header>
+
+  <div class="wrap">
+    <h1>Glossary</h1>
+    <p class="sub">Every term used on this site and in Entropa's product, explained in plain English.
+    No background in AI, blockchains, or cryptography assumed — if a word here confuses you, that's
+    a gap in this page, not in you.</p>
+
+    <div class="group-title">The basics</div>
+
+    <dl class="term">
+      <dt>AI agent</dt>
+      <dd>A piece of software that can make decisions on its own — reading information, deciding what to do,
+      and taking an action — without a human clicking a button for every single step.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>Probe <span class="also">— Entropa's name for an AI agent</span></dt>
+      <dd>Entropa's term for an AI agent that participates in the network. A Probe reasons about what to
+      record (using an AI model), then cryptographically signs its decision before it's added to the chain.
+      Think of it as "the AI whose actions we're keeping an honest record of."</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>Node</dt>
+      <dd>The running piece of software that keeps the record up to date — it collects new entries, puts them
+      in order, and stores them. You can think of a node as the "engine" running behind the scenes.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>Attestation</dt>
+      <dd>One recorded, signed, priced fact — "this AI agent did X, at this time, and here's cryptographic
+      proof of it." This is the actual product: $0.01 buys one attestation.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>Attestation Receipt</dt>
+      <dd>The proof document you get back for a specific attestation — everything you or an auditor need to
+      independently confirm it's real and unaltered, explained both in plain English and in full technical
+      detail. Look one up any time at <code>/api/receipt/&lt;id&gt;</code>.</dd>
+    </dl>
+
+    <div class="group-title">The record itself</div>
+
+    <dl class="term">
+      <dt>Chain <span class="also">(also: blockchain)</span></dt>
+      <dd>An ordered, growing list of records where each new entry is mathematically linked to the one
+      before it. That link is what makes it "tamper-evident" — changing anything in an old entry would break
+      every link after it, which is instantly detectable.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>Block</dt>
+      <dd>One entry in that list — a bundle of one or more actions recorded together, along with the proof
+      details (timestamp, fingerprint, signature) that make it verifiable.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>Transaction</dt>
+      <dd>One specific recorded action inside a block — who did it, what kind of action it was, and the
+      details of what happened.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>Hash <span class="also">(also: fingerprint, digest)</span></dt>
+      <dd>A short string of letters and numbers computed from a piece of data, unique to that exact data.
+      Change even one character of the original data, and the hash comes out completely different — so a
+      matching hash proves nothing was altered.
+      <dd><b>Technical:</b> Entropa uses BLAKE3, a fast, modern cryptographic hash function.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>Signature <span class="also">(digital signature)</span></dt>
+      <dd>Cryptographic proof of exactly who created a piece of data — like a handwritten signature, but
+      mathematically impossible to forge without the signer's private key.
+      <dd><b>Technical:</b> Entropa uses ML-DSA (FIPS-204), a NIST-standardized post-quantum signature
+      scheme — see below.</dd>
+    </dl>
+
+    <div class="group-title">Why "post-quantum"</div>
+
+    <dl class="term">
+      <dt>Post-quantum cryptography</dt>
+      <dd>Most encryption and digital signatures used online today could, in theory, eventually be broken by
+      a sufficiently powerful quantum computer — a type of computer that doesn't exist at large scale yet,
+      but is being actively developed. "Post-quantum" means a method designed to stay secure even after that
+      happens.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>ML-DSA / FIPS-204</dt>
+      <dd>The specific post-quantum digital signature standard Entropa uses, finalized by NIST (the US
+      National Institute of Standards and Technology) in 2024. Every block on Entropa is signed this way.</dd>
+    </dl>
+
+    <div class="group-title">How ordering is decided</div>
+
+    <dl class="term">
+      <dt>Consensus</dt>
+      <dd>The process by which a network agrees on the order that entries get added, especially important
+      if more than one participant could try to add something at the same time.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>Proof of Entropy (PoE)</dt>
+      <dd>Entropa's own consensus method. Unlike "mining" (burning electricity to win the right to add the
+      next entry) or "staking" (buying your way in with money), PoE picks who goes next using a public,
+      independently-run random number source that nobody — including Entropa — can predict or control in
+      advance.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>Beacon <span class="also">(also: drand)</span></dt>
+      <dd>The public randomness source PoE relies on. "drand" is an existing, independent, real-world service
+      that regularly publishes verifiable random values — Entropa reads from it rather than generating its
+      own randomness, so nobody can secretly rig the outcome.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>Mempool</dt>
+      <dd>A short-term waiting area for actions that have been submitted but not yet bundled into a block —
+      typically a matter of seconds.</dd>
+    </dl>
+
+    <div class="group-title">Reliability & storage</div>
+
+    <dl class="term">
+      <dt>Epoch</dt>
+      <dd>An isolated storage generation for the chain's history. Each epoch's data lives in its own
+      permanently separate location, so one epoch's records can never be overwritten by another's — see the
+      <a href="/#durability" style="color:var(--accent2)">Durability</a> section for why this matters.</dd>
+    </dl>
+
+    <div class="group-title">Using the product</div>
+
+    <dl class="term">
+      <dt>API key</dt>
+      <dd>A private credential that identifies you as a specific customer when you submit an action to
+      Entropa — like a password, but scoped specifically to this one purpose.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>Scryon</dt>
+      <dd>Entropa's block explorer — a website (scryon.entropa.space) where you can browse every block and
+      transaction ever recorded, in a searchable, human-readable form.</dd>
+    </dl>
+
+    <div class="group-title">Compliance terms you'll see</div>
+
+    <dl class="term">
+      <dt>HIPAA</dt>
+      <dd>A US law governing how healthcare information must be protected and handled.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>HITRUST</dt>
+      <dd>A widely-recognized security certification, common in healthcare, that proves an organization
+      meets a rigorous, independently-audited set of data-protection controls.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>SOC 2</dt>
+      <dd>An independent audit report confirming a company has real, working controls around security,
+      availability, and confidentiality of the systems it runs.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>EU AI Act</dt>
+      <dd>European Union law regulating AI systems, with extra requirements for "high-risk" AI — including,
+      under Article 12, automatic and tamper-resistant logging of what the AI system did.</dd>
+    </dl>
+
+    <dl class="term">
+      <dt>NIST AI RMF</dt>
+      <dd>The US National Institute of Standards and Technology's voluntary framework for managing AI risk —
+      it calls for documented, verifiable records of what an AI system actually did.</dd>
+    </dl>
+  </div>
+
+  <footer>
+    Didn't find a term? <a href="/hire">Ask aimozart</a> · <a href="/">Back to Entropa</a>
+  </footer>
+</body>
+</html>

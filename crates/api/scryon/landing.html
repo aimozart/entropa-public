@@ -183,6 +183,7 @@
       <a href="#how">How it works</a>
       <a href="#architecture">Architecture</a>
       <a href="#standards">Standards</a>
+      <a href="#durability">Durability</a>
       <a href="https://scryon.entropa.space" target="_blank" rel="noopener noreferrer">Explorer</a>
       <a href="https://scryon.entropa.space/flow" target="_blank" rel="noopener noreferrer">Live Probe feed</a>
       <a href="https://github.com/aimozart/entropa-public/blob/main/POSITIONING.md" target="_blank" rel="noopener noreferrer">Positioning</a>
@@ -379,6 +380,32 @@
         <div class="standard-n">IAPP AIGP</div>
         <div class="standard-d">Accountability principle: demonstrate, with evidence, what an AI system did.</div>
       </div>
+    </div>
+  </section>
+
+  <section class="how" id="durability">
+    <div class="how-title">Trust is proven, not claimed</div>
+    <p class="how-sub">Once a transaction is recorded on Entropa, it can't be silently destroyed by a restart, redeploy, or infrastructure failure — not because we try hard, but because of how the storage is built.</p>
+    <div class="standards">
+      <div class="standard">
+        <div class="standard-n">Isolated by design</div>
+        <div class="standard-d">Every batch of history lives in its own permanent, unique storage namespace. Two different histories can never physically occupy the same location — structurally, not by convention.</div>
+      </div>
+      <div class="standard">
+        <div class="standard-n">Recover, never erase</div>
+        <div class="standard-d">If a gap is ever found on resume, every block up to that point stays — verified byte-for-byte, hash-linked, signature-checked. Only a genuinely bad tail is ever affected.</div>
+      </div>
+      <div class="standard">
+        <div class="standard-n">Automatic quarantine</div>
+        <div class="standard-d">Any detected gap immediately rotates writes to a brand-new namespace. The old one is frozen forever — nothing can overwrite it again, because nothing is ever written to it again.</div>
+      </div>
+      <div class="standard">
+        <div class="standard-n">Open and verifiable</div>
+        <div class="standard-d">24 automated tests — including adversarial scenarios with injected gaps, duplicates, and forged signatures at scale — are public, alongside the code itself, on crates.io and GitHub.</div>
+      </div>
+    </div>
+    <div class="how-cta">
+      <a class="btn ghost" href="https://crates.io/crates/entropa-core" target="_blank" rel="noopener noreferrer">Read the code & tests →</a>
     </div>
   </section>
 

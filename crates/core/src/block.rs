@@ -30,6 +30,45 @@ impl Transaction {
             payload: payload.into(),
         }
     }
+
+    /// A deterministic content fingerprint (hex blake3), used as the public
+    /// "Attestation Receipt" identifier — the client gets this back at submit time
+    /// and can look up the exact signed block it ended up in later via
+    /// `GET /api/receipt/{id}`, independent of which block/index it landed at.
+    pub fn content_hash(&self) -> String {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(self.from.as_bytes());
+        hasher.update(self.kind.as_bytes());
+        hasher.update(self.payload.as_bytes());
+        hex::encode(hasher.finalize().as_bytes())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn content_hash_is_deterministic() {
+        let tx = Transaction::new("probe-1", "attest", "hello world");
+        assert_eq!(tx.content_hash(), tx.content_hash());
+    }
+
+    #[test]
+    fn content_hash_differs_for_different_content() {
+        let a = Transaction::new("probe-1", "attest", "hello world");
+        let b = Transaction::new("probe-1", "attest", "goodbye world");
+        assert_ne!(a.content_hash(), b.content_hash());
+    }
+
+    #[test]
+    fn content_hash_is_sensitive_to_every_field() {
+        let base = Transaction::new("probe-1", "attest", "payload");
+        let diff_from = Transaction::new("probe-2", "attest", "payload");
+        let diff_kind = Transaction::new("probe-1", "register", "payload");
+        assert_ne!(base.content_hash(), diff_from.content_hash());
+        assert_ne!(base.content_hash(), diff_kind.content_hash());
+    }
 }
 
 /// One block in the chain.

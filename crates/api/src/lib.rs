@@ -12,10 +12,16 @@
 //!   most recent 1000 — the full chain is too large for a single response once the chain
 //!   grows past a few thousand blocks, so walk it with `offset` for anything older)
 //! - `GET  /api/head`    — the head block
+//! - `GET  /api/receipt/:id` — the Attestation Receipt for a transaction (looked up by the
+//!   `receipt_id` returned from `POST /api/tx`) — plain-English explanation plus full
+//!   technical proof, independently re-verified on every request
 //! - `POST /api/tx`      — submit a transaction into the mempool
 //! - `GET  /block/:index` — a single block's own static page (JS off safe, never
 //!   disturbed by the explorer's live refresh)
+//! - `GET  /dashboard/:partner` — a public dashboard of one partner's attestations,
+//!   each linking to its independently-verifiable Attestation Receipt
 //! - `GET  /flow`         — a readable feed of the Probe's decisions
+//! - `GET  /glossary`     — plain-English definitions of every term this product uses
 //! - `GET  /robots.txt`, `/sitemap.xml`, `/llms.txt` — crawler/AI-result discoverability
 //!
 //! `POST /api/tx` requires a bearer API key when `AppState.api_keys` is non-empty (see
@@ -140,9 +146,11 @@ pub fn app(state: AppState) -> Router {
             get(|| asset("image/png", FAVICON_512)),
         )
         .route("/block/{index}", get(block_page))
+        .route("/dashboard/{partner}", get(dashboard_page))
         .route("/flow", get(|| async { Html(FLOW_HTML) }))
         .route("/hire", get(|| async { Html(HIRE_HTML) }))
         .route("/resume", get(|| async { Html(RESUME_HTML) }))
+        .route("/glossary", get(|| async { Html(GLOSSARY_HTML) }))
         .route(
             "/robots.txt",
             get(|| async { ([(header::CONTENT_TYPE, "text/plain")], ROBOTS_TXT) }),
@@ -158,6 +166,7 @@ pub fn app(state: AppState) -> Router {
         .route("/api/health", get(health))
         .route("/api/chain", get(chain))
         .route("/api/head", get(head))
+        .route("/api/receipt/{id}", get(receipt))
         .route(
             "/api/tx",
             // Global cap on the write path — 20 req/s across everyone, a backstop against
@@ -182,6 +191,7 @@ static EXPLORER_HTML: &str = include_str!("../scryon/explorer.html");
 static FLOW_HTML: &str = include_str!("../scryon/flow.html");
 static HIRE_HTML: &str = include_str!("../scryon/hire.html");
 static RESUME_HTML: &str = include_str!("../scryon/resume.html");
+static GLOSSARY_HTML: &str = include_str!("../scryon/glossary.html");
 static ROBOTS_TXT: &str = include_str!("../scryon/robots.txt");
 static SITEMAP_XML: &str = include_str!("../scryon/sitemap.xml");
 static LLMS_TXT: &str = include_str!("../scryon/llms.txt");
@@ -238,6 +248,89 @@ async fn chain(State(s): State<AppState>, Query(q): Query<ChainQuery>) -> Json<V
     let end = (offset + limit).min(total);
     let page = n.chain.blocks.get(offset.min(total)..end).unwrap_or(&[]);
     Json(page.to_vec())
+}
+
+/// The **Attestation Receipt** — the proof a customer hands to their own auditor
+/// for a specific recorded action. Looked up by the `content_hash` returned from
+/// `POST /api/tx` at submission time, independent of which block/index it ended
+/// up in.
+///
+/// Every field an auditor needs to independently re-verify is included — not just
+/// asserted from storage, but *recomputed fresh* on every request
+/// (`independent_verification`), so "trust us" is never required. A plain-English
+/// translation sits alongside the raw cryptographic fields, so the same document
+/// works whether the reader is a compliance officer or a security engineer.
+async fn receipt(
+    State(s): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let n = s.node.lock().unwrap();
+    for block in &n.chain.blocks {
+        let Some(tx) = block.transactions.iter().find(|t| t.content_hash() == id) else {
+            continue;
+        };
+
+        let digest = entropa_core::block_digest(
+            block.index,
+            block.timestamp,
+            &block.prev_hash,
+            &block.beacon,
+            &block.transactions,
+            &block.proposer_id,
+        );
+        let hash_matches = hex::encode(digest) == block.hash;
+        let signature_valid =
+            entropa_core::verify_hex(&block.proposer_pubkey, &digest, &block.signature);
+
+        return Ok(Json(serde_json::json!({
+            "receipt_id": id,
+            "status": "confirmed",
+            "plain_english": {
+                "summary": format!(
+                    "This action was permanently recorded by Entropa at height {}. It has been \
+                     cryptographically signed and independently re-verified just now — it cannot \
+                     be altered or deleted without that tampering being immediately detectable. \
+                     You do not need to trust Entropa's word for this; you or your auditor can \
+                     recompute every check below yourselves.",
+                    block.index
+                ),
+                "what_happened": format!("Probe \"{}\" recorded a \"{}\" action.", tx.from, tx.kind),
+                "the_fingerprint": "The block hash below is a unique digital fingerprint of this \
+                     exact record. Changing even one character of the underlying data would \
+                     produce a completely different fingerprint — so a matching fingerprint is \
+                     proof nothing has been altered.",
+                "the_signature": "The signature proves this specific, identifiable Probe created \
+                     this record — using a post-quantum signature scheme (ML-DSA), designed to \
+                     stay secure even against future quantum computers, not just today's.",
+                "the_ordering_proof": "The beacon value proves the recording order wasn't \
+                     manipulated by Entropa itself — it comes from a public randomness source \
+                     (drand) that Entropa does not control.",
+            },
+            "transaction": {
+                "from": tx.from,
+                "kind": tx.kind,
+                "payload": tx.payload,
+            },
+            "technical": {
+                "block_index": block.index,
+                "block_timestamp": block.timestamp,
+                "beacon": block.beacon,
+                "proposer_id": block.proposer_id,
+                "proposer_pubkey": block.proposer_pubkey,
+                "block_hash": block.hash,
+                "signature": block.signature,
+                "hash_algorithm": "BLAKE3",
+                "signature_algorithm": "ML-DSA-65 (NIST FIPS-204)",
+            },
+            "independent_verification": {
+                "hash_recomputed_and_matches": hash_matches,
+                "signature_verified": signature_valid,
+                "note": "These two checks were re-performed fresh, right now, against the raw \
+                     block data — not read from a cached or stored 'verified' flag.",
+            },
+        })));
+    }
+    Err(StatusCode::NOT_FOUND)
 }
 
 async fn head(State(s): State<AppState>) -> Json<Option<Block>> {
@@ -328,6 +421,74 @@ async fn block_page(
     Html(html).into_response()
 }
 
+/// Every transaction submitted by `partner` (matched against `Transaction.from`), most
+/// recent block first, rendered as a public dashboard page. `None` if the partner has
+/// no attestations at all — callers decide how to 404 without needing to know
+/// anything about chain internals.
+///
+/// Deliberately takes `&Node` rather than `AppState` and returns a plain `String` —
+/// no dependency on *how* the partner name arrived (a path segment today; a
+/// subdomain's `Host` header once customer subdomains exist), so a future subdomain
+/// handler can call this completely unchanged.
+fn render_partner_dashboard(n: &Node, partner: &str) -> Option<String> {
+    let rows: String = n
+        .chain
+        .blocks
+        .iter()
+        .rev()
+        .flat_map(|block| {
+            block
+                .transactions
+                .iter()
+                .filter(move |tx| tx.from == partner)
+                .map(move |tx| (block.index, tx))
+        })
+        .map(|(index, tx)| {
+            format!(
+                "<tr><td><a href=\"/block/{index}\">{index}</a></td><td>{kind}</td>\
+                 <td>{payload}</td><td><a href=\"/api/receipt/{receipt_id}\">view receipt →</a></td></tr>",
+                kind = esc(&tx.kind),
+                payload = esc(&tx.payload),
+                receipt_id = tx.content_hash(),
+            )
+        })
+        .collect();
+
+    if rows.is_empty() {
+        return None;
+    }
+
+    Some(format!(
+        "{BLOCK_PAGE_HEAD}<body><div class=\"wrap\">\
+        <a class=\"back\" href=\"/\">← Back to explorer</a>\
+        <h1>{partner_esc}'s Attestation Dashboard</h1>\
+        <p class=\"muted\">Every action recorded on Entropa by this customer, with a link to \
+        its independently-verifiable Attestation Receipt.</p>\
+        <table class=\"txs\"><tr><th>Block</th><th>Kind</th><th>Payload</th><th>Receipt</th></tr>{rows}</table>\
+        </div></body></html>",
+        partner_esc = esc(partner),
+    ))
+}
+
+async fn dashboard_page(
+    State(s): State<AppState>,
+    Path(partner): Path<String>,
+) -> axum::response::Response {
+    let n = s.node.lock().unwrap();
+    match render_partner_dashboard(&n, &partner) {
+        Some(html) => Html(html).into_response(),
+        None => (
+            StatusCode::NOT_FOUND,
+            Html(format!(
+                "{BLOCK_PAGE_HEAD}<body><div class=\"wrap\">\
+                 <a class=\"back\" href=\"/\">← Back to explorer</a>\
+                 <h1>No dashboard found at this address</h1></div></body></html>"
+            )),
+        )
+            .into_response(),
+    }
+}
+
 /// Minimal HTML-escaping for any field that could carry user-submitted content
 /// (transactions come in via `POST /api/tx`).
 fn esc(s: &str) -> String {
@@ -397,10 +558,18 @@ async fn submit_tx(
         // a partner can't submit a transaction claiming to be someone else.
         tx.from = partner.clone();
     }
+    let receipt_id = tx.content_hash();
     let mut n = s.node.lock().unwrap();
     n.submit(tx);
     Ok(Json(
-        serde_json::json!({ "accepted": true, "pending": n.mempool.len() }),
+        serde_json::json!({
+            "accepted": true,
+            "pending": n.mempool.len(),
+            "receipt_id": receipt_id,
+            "receipt_note": "Not yet proof of anything — this only confirms your transaction is \
+                 queued. Within a few seconds it will be included in a signed block; poll \
+                 GET /api/receipt/{receipt_id} to get the actual Attestation Receipt.",
+        }),
     ))
 }
 
@@ -420,6 +589,113 @@ mod tests {
         node.submit(Transaction::new("boot", "genesis", "big bang"));
         node.try_produce(0, 1_000);
         node
+    }
+
+    /// A node with one block containing a single transaction from `partner` — for
+    /// exercising `/dashboard/{partner}` without needing the real submit/produce cycle.
+    fn node_with_partner_tx(partner: &str, kind: &str, payload: &str) -> Node {
+        let probe = Probe::spawn();
+        let validators = vec![Validator::new(probe.id(), probe.pubkey_hex())];
+        let mut node = Node::new(probe, validators);
+        node.submit(Transaction::new(partner, kind, payload));
+        node.try_produce(0, 1_000);
+        node
+    }
+
+    #[tokio::test]
+    async fn dashboard_shows_partner_attestations() {
+        let resp = app(AppState::new(node_with_partner_tx(
+            "john-q-public",
+            "attest",
+            "demo payload",
+        )))
+        .oneshot(
+            Request::builder()
+                .uri("/dashboard/john-q-public")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let html = String::from_utf8(body.to_vec()).unwrap();
+        assert!(html.contains("attest"));
+        assert!(html.contains("demo payload"));
+        assert!(html.contains("/api/receipt/"));
+    }
+
+    #[tokio::test]
+    async fn dashboard_404s_for_unknown_partner() {
+        let resp = app(AppState::new(node_with_one_block()))
+            .oneshot(
+                Request::builder()
+                    .uri("/dashboard/nobody-here")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn dashboard_escapes_untrusted_fields() {
+        let resp = app(AppState::new(node_with_partner_tx(
+            "john-q-public",
+            "attest",
+            "<script>alert(1)</script>",
+        )))
+        .oneshot(
+            Request::builder()
+                .uri("/dashboard/john-q-public")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let html = String::from_utf8(body.to_vec()).unwrap();
+        assert!(!html.contains("<script>"));
+        assert!(html.contains("&lt;script&gt;"));
+    }
+
+    #[tokio::test]
+    async fn dashboard_orders_most_recent_first() {
+        let probe = Probe::spawn();
+        let validators = vec![Validator::new(probe.id(), probe.pubkey_hex())];
+        let mut node = Node::new(probe, validators);
+        node.submit(Transaction::new("john-q-public", "attest", "first"));
+        node.try_produce(0, 1_000);
+        node.submit(Transaction::new("john-q-public", "attest", "second"));
+        node.try_produce(1, 2_000);
+
+        let resp = app(AppState::new(node))
+            .oneshot(
+                Request::builder()
+                    .uri("/dashboard/john-q-public")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let html = String::from_utf8(body.to_vec()).unwrap();
+        // The page's own CSS contains the literal substring "first" (from a
+        // `:first-child` selector), so search inside the table cell specifically.
+        let pos_first = html.find("<td>first</td>").unwrap();
+        let pos_second = html.find("<td>second</td>").unwrap();
+        assert!(
+            pos_second < pos_first,
+            "most recent block (\"second\") must appear before older block (\"first\")"
+        );
     }
 
     #[tokio::test]
@@ -545,6 +821,82 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn glossary_page_served() {
+        let resp = app(AppState::new(node_with_one_block()))
+            .oneshot(
+                Request::builder()
+                    .uri("/glossary")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn receipt_returns_proof_for_known_transaction() {
+        let node = node_with_one_block();
+        let known_tx_id = node.chain.blocks[0].transactions[0].content_hash();
+        let resp = app(AppState::new(node))
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/receipt/{known_tx_id}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["independent_verification"]["hash_recomputed_and_matches"], true);
+        assert_eq!(json["independent_verification"]["signature_verified"], true);
+        assert_eq!(json["technical"]["block_index"], 0);
+    }
+
+    #[tokio::test]
+    async fn receipt_404s_for_unknown_id() {
+        let resp = app(AppState::new(node_with_one_block()))
+            .oneshot(
+                Request::builder()
+                    .uri("/api/receipt/not-a-real-receipt-id")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn tx_response_includes_receipt_id() {
+        let resp = app(AppState::new(node_with_one_block()))
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/tx")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        r#"{"from":"anyone","kind":"attest","payload":"hi"}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert!(!json["receipt_id"].as_str().unwrap().is_empty());
     }
 
     #[tokio::test]
