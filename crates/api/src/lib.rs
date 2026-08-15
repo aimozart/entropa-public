@@ -561,16 +561,14 @@ async fn submit_tx(
     let receipt_id = tx.content_hash();
     let mut n = s.node.lock().unwrap();
     n.submit(tx);
-    Ok(Json(
-        serde_json::json!({
-            "accepted": true,
-            "pending": n.mempool.len(),
-            "receipt_id": receipt_id,
-            "receipt_note": "Not yet proof of anything — this only confirms your transaction is \
-                 queued. Within a few seconds it will be included in a signed block; poll \
-                 GET /api/receipt/{receipt_id} to get the actual Attestation Receipt.",
-        }),
-    ))
+    Ok(Json(serde_json::json!({
+        "accepted": true,
+        "pending": n.mempool.len(),
+        "receipt_id": receipt_id,
+        "receipt_note": "Not yet proof of anything — this only confirms your transaction is \
+             queued. Within a few seconds it will be included in a signed block; poll \
+             GET /api/receipt/{receipt_id} to get the actual Attestation Receipt.",
+    })))
 }
 
 #[cfg(test)]
@@ -856,7 +854,10 @@ mod tests {
             .await
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-        assert_eq!(json["independent_verification"]["hash_recomputed_and_matches"], true);
+        assert_eq!(
+            json["independent_verification"]["hash_recomputed_and_matches"],
+            true
+        );
         assert_eq!(json["independent_verification"]["signature_verified"], true);
         assert_eq!(json["technical"]["block_index"], 0);
     }

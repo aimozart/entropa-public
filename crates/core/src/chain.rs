@@ -408,7 +408,11 @@ mod tests {
                 &founder,
                 1_000 + i as u64,
                 beacon::sample(i as u64),
-                vec![Transaction::new(founder.id(), "attest", format!("round {i}"))],
+                vec![Transaction::new(
+                    founder.id(),
+                    "attest",
+                    format!("round {i}"),
+                )],
             );
         }
         chain
@@ -430,7 +434,11 @@ mod tests {
         let mut blocks = chain.blocks.clone();
         blocks.remove(999);
         let recovered = Chain::recover_longest_valid_prefix(blocks);
-        assert_eq!(recovered.len(), 999, "must keep all 999 good blocks, not discard everything");
+        assert_eq!(
+            recovered.len(),
+            999,
+            "must keep all 999 good blocks, not discard everything"
+        );
         assert_eq!(recovered.verify(), Ok(()));
     }
 
@@ -473,10 +481,12 @@ mod tests {
 
         let mut shuffled = chain.blocks.clone();
         // deterministic "shuffle": interleave odd/even indices
-        let (evens, odds): (Vec<_>, Vec<_>) =
-            shuffled.drain(..).partition(|b| b.index % 2 == 0);
+        let (evens, odds): (Vec<_>, Vec<_>) = shuffled.drain(..).partition(|b| b.index % 2 == 0);
         let mut interleaved = Vec::new();
-        for pair in evens.into_iter().zip(odds.into_iter().chain(std::iter::empty())) {
+        for pair in evens
+            .into_iter()
+            .zip(odds.into_iter().chain(std::iter::empty()))
+        {
             interleaved.push(pair.1);
             interleaved.push(pair.0);
         }
@@ -535,10 +545,19 @@ mod tests {
 
     #[test]
     fn rollback_detected_flags_only_when_something_was_actually_discarded() {
-        assert!(!rollback_detected(1000, 1000), "no gap: must not flag a rollback");
-        assert!(rollback_detected(1000, 999), "any discard at all must be flagged");
+        assert!(
+            !rollback_detected(1000, 1000),
+            "no gap: must not flag a rollback"
+        );
+        assert!(
+            rollback_detected(1000, 999),
+            "any discard at all must be flagged"
+        );
         assert!(rollback_detected(1000, 0), "total loss must be flagged");
-        assert!(!rollback_detected(0, 0), "nothing loaded, nothing recovered: not a rollback");
+        assert!(
+            !rollback_detected(0, 0),
+            "nothing loaded, nothing recovered: not a rollback"
+        );
     }
 
     #[test]
@@ -555,8 +574,16 @@ mod tests {
     fn bound_to_window_keeps_only_the_most_recent_n_blocks() {
         let chain = long_valid_chain(1000);
         let bounded = chain.bound_to_window(200);
-        assert_eq!(bounded.blocks.len(), 200, "in-memory footprint must shrink to the window");
-        assert_eq!(bounded.height(), 1000, "logical height must be unaffected by eviction");
+        assert_eq!(
+            bounded.blocks.len(),
+            200,
+            "in-memory footprint must shrink to the window"
+        );
+        assert_eq!(
+            bounded.height(),
+            1000,
+            "logical height must be unaffected by eviction"
+        );
         assert_eq!(bounded.blocks.first().unwrap().index, 800);
         assert_eq!(bounded.blocks.last().unwrap().index, 999);
     }
