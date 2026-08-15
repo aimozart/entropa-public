@@ -33,17 +33,67 @@ pub enum ChainError {
 }
 
 /// An append-only chain of post-quantum-signed blocks.
+///
+/// `blocks` need not hold the *entire* history — see [`Chain::bound_to_window`].
+/// `base_index`/`base_hash` record where the in-memory window starts when older
+/// history has been trimmed: `base_index` is the index of the first block no
+/// longer held, and `base_hash` is that block's hash (the floor the current
+/// window's first block must link to). Both are `0`/empty for a chain that has
+/// never evicted anything, in which case the floor is genesis (`BIG_BANG`).
 #[derive(Debug, Default, Clone)]
 pub struct Chain {
     pub blocks: Vec<Block>,
+    pub base_index: u64,
+    pub base_hash: String,
 }
 
 impl Chain {
     /// Create a new chain, proposing the genesis ("Big Bang") block with `founder`.
     pub fn genesis(founder: &Probe, timestamp: u64, beacon: impl Into<String>) -> Self {
-        let mut chain = Chain { blocks: Vec::new() };
+        let mut chain = Chain::default();
         chain.propose(founder, timestamp, beacon, Vec::new());
         chain
+    }
+
+    /// The floor hash this window's first block must link to: genesis if nothing has
+    /// ever been evicted, otherwise the hash of the last evicted block.
+    fn floor_hash(&self) -> &str {
+        if self.base_index == 0 {
+            BIG_BANG
+        } else {
+            self.base_hash.as_str()
+        }
+    }
+
+    /// Total chain height, including any history trimmed out of `blocks` by
+    /// [`Chain::bound_to_window`]. Use this instead of `.len()` wherever the real
+    /// logical height is needed (e.g. the next block's index) — `.len()` only
+    /// reflects what's currently held in memory.
+    pub fn height(&self) -> u64 {
+        self.base_index + self.blocks.len() as u64
+    }
+
+    /// Trim this chain down to at most its `window` most recent blocks. Pure and
+    /// deterministic — same input, same output, no I/O, no mutation of anything
+    /// outside `self` — a no-op when the chain is already within the window.
+    ///
+    /// The evicted blocks are not lost, only no longer held in memory: this project
+    /// treats Firestore as the durable source of truth for everything below
+    /// `base_index`, so `verify()` can still confirm the retained window links
+    /// correctly to the history it no longer holds, without re-walking that
+    /// history. This is the fix for the O(n)-with-height memory (and, via
+    /// `verify()`'s full walk, time) growth found during soak monitoring at height
+    /// ~36,845 — see `SESSION_STATE.md` § Bounded-memory chain architecture.
+    pub fn bound_to_window(mut self, window: usize) -> Chain {
+        if self.blocks.len() <= window {
+            return self;
+        }
+        let cut = self.blocks.len() - window;
+        let new_floor = self.blocks[cut - 1].clone();
+        self.base_index = new_floor.index + 1;
+        self.base_hash = new_floor.hash;
+        self.blocks.drain(0..cut);
+        self
     }
 
     /// Build and post-quantum-sign the next block **without appending it**.
@@ -57,12 +107,12 @@ impl Chain {
         beacon: impl Into<String>,
         transactions: Vec<Transaction>,
     ) -> Block {
-        let index = self.blocks.len() as u64;
+        let index = self.height();
         let prev_hash = self
             .blocks
             .last()
             .map(|b| b.hash.clone())
-            .unwrap_or_else(|| BIG_BANG.to_string());
+            .unwrap_or_else(|| self.floor_hash().to_string());
         let beacon = beacon.into();
         let proposer_id = proposer.id();
         let proposer_pubkey = proposer.pubkey_hex();
@@ -92,12 +142,12 @@ impl Chain {
     /// fingerprint, PQC signature) and append it. Does **not** enforce consensus rules
     /// (who may propose) — that is the node layer's job.
     pub fn try_append(&mut self, block: Block) -> Result<(), ChainError> {
-        let expected = self.blocks.len() as u64;
+        let expected = self.height();
         let prev = self
             .blocks
             .last()
             .map(|b| b.hash.as_str())
-            .unwrap_or(BIG_BANG);
+            .unwrap_or_else(|| self.floor_hash());
         if block.index != expected {
             return Err(ChainError::BadIndex(expected));
         }
@@ -145,9 +195,9 @@ impl Chain {
         if self.blocks.is_empty() {
             return Err(ChainError::Empty);
         }
-        let mut prev = BIG_BANG.to_string();
-        for (i, b) in self.blocks.iter().enumerate() {
-            let i = i as u64;
+        let mut prev = self.floor_hash().to_string();
+        for (offset, b) in self.blocks.iter().enumerate() {
+            let i = self.base_index + offset as u64;
             if b.index != i {
                 return Err(ChainError::BadIndex(i));
             }
@@ -489,6 +539,93 @@ mod tests {
         assert!(rollback_detected(1000, 999), "any discard at all must be flagged");
         assert!(rollback_detected(1000, 0), "total loss must be flagged");
         assert!(!rollback_detected(0, 0), "nothing loaded, nothing recovered: not a rollback");
+    }
+
+    #[test]
+    fn bound_to_window_is_a_noop_when_chain_is_already_within_it() {
+        let chain = long_valid_chain(50);
+        let bounded = chain.clone().bound_to_window(1000);
+        assert_eq!(bounded.blocks.len(), 50);
+        assert_eq!(bounded.base_index, 0);
+        assert_eq!(bounded.height(), 50);
+        assert_eq!(bounded.verify(), Ok(()));
+    }
+
+    #[test]
+    fn bound_to_window_keeps_only_the_most_recent_n_blocks() {
+        let chain = long_valid_chain(1000);
+        let bounded = chain.bound_to_window(200);
+        assert_eq!(bounded.blocks.len(), 200, "in-memory footprint must shrink to the window");
+        assert_eq!(bounded.height(), 1000, "logical height must be unaffected by eviction");
+        assert_eq!(bounded.blocks.first().unwrap().index, 800);
+        assert_eq!(bounded.blocks.last().unwrap().index, 999);
+    }
+
+    #[test]
+    fn bounded_chain_verifies_against_its_floor_hash_without_full_history() {
+        let chain = long_valid_chain(1000);
+        let bounded = chain.bound_to_window(200);
+        // verify() must succeed using only the 200 retained blocks + the floor hash —
+        // it never sees the 800 evicted blocks, proving verification cost is bounded
+        // by the window, not by total height.
+        assert_eq!(bounded.verify(), Ok(()));
+    }
+
+    #[test]
+    fn bounded_chain_detects_tamper_within_its_window() {
+        let mut chain = long_valid_chain(1000);
+        chain.blocks[950].transactions[0].payload = "FORGED".into();
+        let bounded = chain.bound_to_window(200);
+        assert_eq!(bounded.verify(), Err(ChainError::BadHash(950)));
+    }
+
+    #[test]
+    fn bounded_chain_continues_producing_correctly_after_eviction() {
+        let founder = Probe::spawn();
+        let mut chain = Chain::genesis(&founder, 1_000, beacon::sample(0));
+        for i in 1..500 {
+            chain.propose(&founder, 1_000 + i, beacon::sample(i), Vec::new());
+        }
+        let mut bounded = chain.bound_to_window(100);
+        assert_eq!(bounded.height(), 500);
+        // Propose more blocks against the already-bounded chain — must link
+        // correctly off the retained tail, not the evicted floor.
+        for i in 500..510 {
+            bounded.propose(&founder, 1_000 + i, beacon::sample(i), Vec::new());
+        }
+        assert_eq!(bounded.height(), 510);
+        assert_eq!(bounded.verify(), Ok(()));
+    }
+
+    #[test]
+    fn repeated_eviction_keeps_memory_flat_regardless_of_total_height() {
+        // The actual production shape: block production never stops, so this must
+        // hold no matter how many total blocks have ever existed — proving the
+        // fix for the real O(n)-with-height memory growth found during soak
+        // monitoring (Memory limit of 512 MiB exceeded at height ~36,845).
+        const WINDOW: usize = 100;
+        let founder = Probe::spawn();
+        let mut chain = Chain::genesis(&founder, 1_000, beacon::sample(0));
+        for i in 1..1_200u64 {
+            chain.propose(&founder, 1_000 + i, beacon::sample(i), Vec::new());
+            chain = chain.bound_to_window(WINDOW);
+            assert!(
+                chain.blocks.len() <= WINDOW,
+                "in-memory footprint exceeded the window at height {}",
+                chain.height()
+            );
+        }
+        assert_eq!(chain.height(), 1_200);
+        assert_eq!(chain.verify(), Ok(()));
+    }
+
+    #[test]
+    fn bounded_chain_try_append_rejects_wrong_index_relative_to_floor() {
+        let chain = long_valid_chain(300).bound_to_window(50);
+        let rogue = Probe::spawn();
+        let mut c = chain.clone();
+        let foreign = Chain::default().draft(&rogue, 5, beacon::sample(9), Vec::new());
+        assert_eq!(c.try_append(foreign), Err(ChainError::BadIndex(300)));
     }
 
     #[test]
