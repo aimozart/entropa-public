@@ -49,7 +49,10 @@ async fn main() {
     // Resume from persisted state if configured and available; otherwise start fresh.
     let mut round: u64 = 0;
     if let Some(blocks) = persistence::load_chain().await {
-        let candidate = Chain { blocks };
+        let candidate = Chain {
+            blocks,
+            ..Chain::default()
+        };
         if candidate.verify().is_ok() {
             round = candidate.len() as u64;
             println!("📦 resumed chain from persisted state — height {round}");
