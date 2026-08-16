@@ -25,6 +25,19 @@ naive scanner. This is safe: it's NIST's own published, standardized, public tes
 (`tests/vectors/fetch.sh` reproduces the full upstream set), never a real credential. Allowlisted in
 `.gitleaks.toml` so a future rule change doesn't silently start flagging it.
 
+## Dependency vulnerability scanning
+
+Before any public push, employer-facing handoff, demo repo publication, or application asset
+submission (same gate as secret scanning above):
+
+1. Run `cargo audit` against the committed `Cargo.lock`: `./scripts/security/dependency-audit.sh`.
+2. `Cargo.lock` is committed (not gitignored) — this is an application binary, not a pure library;
+   `cargo audit` needs exact resolved versions, not the ranges in `Cargo.toml`.
+
+Enforced continuously in CI (`dependency-audit` job, `.github/workflows/ci.yml`): runs on every push
+*and* on a daily schedule, so a newly published CVE against an already-vendored dependency gets caught
+within a day even with zero code changes — not just "checked when someone happens to push."
+
 ## What actually gates writes/secrets in this project
 
 `ENTROPA_API_KEYS`, `ENTROPA_STRIPE_CUSTOMERS`, and related config are environment variables /
