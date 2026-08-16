@@ -46,6 +46,11 @@ use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 use entropa_core::{Block, Transaction};
 use entropa_node::Node;
 
+mod html;
+mod routes;
+#[cfg(test)]
+mod test_support;
+
 /// A token bucket for one partner's per-key rate limit: refills continuously at
 /// `PER_KEY_RATE` tokens/second up to `PER_KEY_BURST` capacity; each request costs one
 /// token. Simpler than a sliding-window log (O(1) per check, not O(requests-in-window)),
@@ -145,8 +150,11 @@ pub fn app(state: AppState) -> Router {
             "/assets/favicon-512.png",
             get(|| asset("image/png", FAVICON_512)),
         )
-        .route("/block/{index}", get(block_page))
-        .route("/dashboard/{partner}", get(dashboard_page))
+        .route("/block/{index}", get(routes::blocks::block_page))
+        .route(
+            "/dashboard/{partner}",
+            get(routes::dashboard::dashboard_page),
+        )
         .route("/flow", get(|| async { Html(FLOW_HTML) }))
         .route("/hire", get(|| async { Html(HIRE_HTML) }))
         .route("/resume", get(|| async { Html(RESUME_HTML) }))
@@ -338,193 +346,6 @@ async fn head(State(s): State<AppState>) -> Json<Option<Block>> {
     Json(n.chain.head().cloned())
 }
 
-/// A single block's own static page — server-rendered HTML, no client JS at all.
-/// Deliberately outside the explorer's live-polling list so it can never get
-/// clobbered by a new block arriving while a visitor is reading it.
-async fn block_page(
-    State(s): State<AppState>,
-    Path(index): Path<usize>,
-) -> axum::response::Response {
-    let n = s.node.lock().unwrap();
-    let Some(block) = n.chain.blocks.get(index) else {
-        return (
-            StatusCode::NOT_FOUND,
-            Html(format!(
-                "{BLOCK_PAGE_HEAD}<body><div class=\"wrap\"><a class=\"back\" href=\"/\">← Back to explorer</a>\
-                 <h1>Block {index} not found</h1><p>The chain doesn't have a block at that height (yet).</p>\
-                 </div></body></html>"
-            )),
-        )
-            .into_response();
-    };
-
-    let tx_rows: String = block
-        .transactions
-        .iter()
-        .map(|tx| {
-            format!(
-                "<tr><td>{}</td><td>{}</td><td>{}</td></tr>",
-                esc(&tx.from),
-                esc(&tx.kind),
-                esc(&tx.payload),
-            )
-        })
-        .collect();
-
-    let prev = index.checked_sub(1);
-    let next = index + 1;
-    let has_next = n.chain.blocks.get(next).is_some();
-
-    let nav = format!(
-        "{}<span class=\"sep\">·</span>{}",
-        prev.map(|p| format!("<a href=\"/block/{p}\">← block {p}</a>"))
-            .unwrap_or_else(|| "<span class=\"muted\">← genesis</span>".to_string()),
-        if has_next {
-            format!("<a href=\"/block/{next}\">block {next} →</a>")
-        } else {
-            "<span class=\"muted\">latest →</span>".to_string()
-        }
-    );
-
-    let html = format!(
-        "{BLOCK_PAGE_HEAD}<body><div class=\"wrap\">\
-        <a class=\"back\" href=\"/\">← Back to explorer</a>\
-        <h1>Block {index}</h1>\
-        <table class=\"fields\">\
-        <tr><th>Timestamp</th><td>{ts}</td></tr>\
-        <tr><th>Prev hash</th><td class=\"mono\">{prev_hash}</td></tr>\
-        <tr><th>Beacon</th><td class=\"mono\">{beacon}</td></tr>\
-        <tr><th>Proposer</th><td class=\"mono\">{proposer}</td></tr>\
-        <tr><th>Proposer pubkey</th><td class=\"mono\">{pubkey}</td></tr>\
-        <tr><th>Hash</th><td class=\"mono\">{hash}</td></tr>\
-        <tr><th>Signature</th><td class=\"mono\">{sig}</td></tr>\
-        </table>\
-        <h2>{tx_count} transaction{tx_plural}</h2>\
-        <table class=\"txs\"><tr><th>From</th><th>Kind</th><th>Payload</th></tr>{tx_rows}</table>\
-        <div class=\"nav\">{nav}</div>\
-        </div></body></html>",
-        ts = block.timestamp,
-        prev_hash = esc(&block.prev_hash),
-        beacon = esc(&block.beacon),
-        proposer = esc(&block.proposer_id),
-        pubkey = esc(&block.proposer_pubkey),
-        hash = esc(&block.hash),
-        sig = esc(&block.signature),
-        tx_count = block.transactions.len(),
-        tx_plural = if block.transactions.len() == 1 {
-            ""
-        } else {
-            "s"
-        },
-    );
-
-    Html(html).into_response()
-}
-
-/// Every transaction submitted by `partner` (matched against `Transaction.from`), most
-/// recent block first, rendered as a public dashboard page. `None` if the partner has
-/// no attestations at all — callers decide how to 404 without needing to know
-/// anything about chain internals.
-///
-/// Deliberately takes `&Node` rather than `AppState` and returns a plain `String` —
-/// no dependency on *how* the partner name arrived (a path segment today; a
-/// subdomain's `Host` header once customer subdomains exist), so a future subdomain
-/// handler can call this completely unchanged.
-fn render_partner_dashboard(n: &Node, partner: &str) -> Option<String> {
-    let rows: String = n
-        .chain
-        .blocks
-        .iter()
-        .rev()
-        .flat_map(|block| {
-            block
-                .transactions
-                .iter()
-                .filter(move |tx| tx.from == partner)
-                .map(move |tx| (block.index, tx))
-        })
-        .map(|(index, tx)| {
-            format!(
-                "<tr><td><a href=\"/block/{index}\">{index}</a></td><td>{kind}</td>\
-                 <td>{payload}</td><td><a href=\"/api/receipt/{receipt_id}\">view receipt →</a></td></tr>",
-                kind = esc(&tx.kind),
-                payload = esc(&tx.payload),
-                receipt_id = tx.content_hash(),
-            )
-        })
-        .collect();
-
-    if rows.is_empty() {
-        return None;
-    }
-
-    Some(format!(
-        "{BLOCK_PAGE_HEAD}<body><div class=\"wrap\">\
-        <a class=\"back\" href=\"/\">← Back to explorer</a>\
-        <h1>{partner_esc}'s Attestation Dashboard</h1>\
-        <p class=\"muted\">Every action recorded on Entropa by this customer, with a link to \
-        its independently-verifiable Attestation Receipt.</p>\
-        <table class=\"txs\"><tr><th>Block</th><th>Kind</th><th>Payload</th><th>Receipt</th></tr>{rows}</table>\
-        </div></body></html>",
-        partner_esc = esc(partner),
-    ))
-}
-
-async fn dashboard_page(
-    State(s): State<AppState>,
-    Path(partner): Path<String>,
-) -> axum::response::Response {
-    let n = s.node.lock().unwrap();
-    match render_partner_dashboard(&n, &partner) {
-        Some(html) => Html(html).into_response(),
-        None => (
-            StatusCode::NOT_FOUND,
-            Html(format!(
-                "{BLOCK_PAGE_HEAD}<body><div class=\"wrap\">\
-                 <a class=\"back\" href=\"/\">← Back to explorer</a>\
-                 <h1>No dashboard found at this address</h1></div></body></html>"
-            )),
-        )
-            .into_response(),
-    }
-}
-
-/// Minimal HTML-escaping for any field that could carry user-submitted content
-/// (transactions come in via `POST /api/tx`).
-fn esc(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-}
-
-const BLOCK_PAGE_HEAD: &str = r#"<!doctype html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Entropa — block detail</title>
-<link rel="icon" href="/assets/favicon.ico">
-<style>
-:root{color-scheme:dark}
-body{margin:0;background:#0a0e14;color:#dbe4f0;font:15px/1.5 -apple-system,system-ui,sans-serif}
-.wrap{max-width:760px;margin:0 auto;padding:32px 24px 64px}
-.back{color:#7fb8ff;text-decoration:none;font-size:14px}
-.back:hover{text-decoration:underline}
-h1{margin:16px 0 20px;font-size:28px}
-h2{margin:32px 0 12px;font-size:18px;color:#9fb3cc}
-table{width:100%;border-collapse:collapse;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden}
-.fields th,.fields td{padding:10px 14px;text-align:left;border-top:1px solid rgba(255,255,255,.06)}
-.fields tr:first-child th,.fields tr:first-child td{border-top:none}
-.fields th{color:#8ea0b8;font-weight:500;width:160px}
-.txs th,.txs td{padding:8px 14px;text-align:left;border-top:1px solid rgba(255,255,255,.06);font-size:13px}
-.txs th{color:#8ea0b8;font-weight:500}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;word-break:break-all;color:#a8d8ff}
-.nav{margin-top:28px;display:flex;justify-content:space-between;font-size:14px}
-.nav a{color:#7fb8ff;text-decoration:none}
-.nav a:hover{text-decoration:underline}
-.muted{color:#5a6b80}
-.sep{display:none}
-</style></head>
-"#;
-
 /// Turns a buffered/rate-limited request's failure (queue full, or over the rate cap)
 /// into a proper HTTP response instead of the connection just dying.
 async fn rate_limit_error(err: BoxError) -> (StatusCode, String) {
@@ -574,127 +395,12 @@ async fn submit_tx(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::node_with_one_block;
     use axum::body::Body;
     use axum::http::Request;
     use entropa_core::Probe;
     use entropa_node::Validator;
     use tower::ServiceExt;
-
-    fn node_with_one_block() -> Node {
-        let probe = Probe::spawn();
-        let validators = vec![Validator::new(probe.id(), probe.pubkey_hex())];
-        let mut node = Node::new(probe, validators);
-        node.submit(Transaction::new("boot", "genesis", "big bang"));
-        node.try_produce(0, 1_000);
-        node
-    }
-
-    /// A node with one block containing a single transaction from `partner` — for
-    /// exercising `/dashboard/{partner}` without needing the real submit/produce cycle.
-    fn node_with_partner_tx(partner: &str, kind: &str, payload: &str) -> Node {
-        let probe = Probe::spawn();
-        let validators = vec![Validator::new(probe.id(), probe.pubkey_hex())];
-        let mut node = Node::new(probe, validators);
-        node.submit(Transaction::new(partner, kind, payload));
-        node.try_produce(0, 1_000);
-        node
-    }
-
-    #[tokio::test]
-    async fn dashboard_shows_partner_attestations() {
-        let resp = app(AppState::new(node_with_partner_tx(
-            "john-q-public",
-            "attest",
-            "demo payload",
-        )))
-        .oneshot(
-            Request::builder()
-                .uri("/dashboard/john-q-public")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-
-        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let html = String::from_utf8(body.to_vec()).unwrap();
-        assert!(html.contains("attest"));
-        assert!(html.contains("demo payload"));
-        assert!(html.contains("/api/receipt/"));
-    }
-
-    #[tokio::test]
-    async fn dashboard_404s_for_unknown_partner() {
-        let resp = app(AppState::new(node_with_one_block()))
-            .oneshot(
-                Request::builder()
-                    .uri("/dashboard/nobody-here")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
-    }
-
-    #[tokio::test]
-    async fn dashboard_escapes_untrusted_fields() {
-        let resp = app(AppState::new(node_with_partner_tx(
-            "john-q-public",
-            "attest",
-            "<script>alert(1)</script>",
-        )))
-        .oneshot(
-            Request::builder()
-                .uri("/dashboard/john-q-public")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let html = String::from_utf8(body.to_vec()).unwrap();
-        assert!(!html.contains("<script>"));
-        assert!(html.contains("&lt;script&gt;"));
-    }
-
-    #[tokio::test]
-    async fn dashboard_orders_most_recent_first() {
-        let probe = Probe::spawn();
-        let validators = vec![Validator::new(probe.id(), probe.pubkey_hex())];
-        let mut node = Node::new(probe, validators);
-        node.submit(Transaction::new("john-q-public", "attest", "first"));
-        node.try_produce(0, 1_000);
-        node.submit(Transaction::new("john-q-public", "attest", "second"));
-        node.try_produce(1, 2_000);
-
-        let resp = app(AppState::new(node))
-            .oneshot(
-                Request::builder()
-                    .uri("/dashboard/john-q-public")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let html = String::from_utf8(body.to_vec()).unwrap();
-        // The page's own CSS contains the literal substring "first" (from a
-        // `:first-child` selector), so search inside the table cell specifically.
-        let pos_first = html.find("<td>first</td>").unwrap();
-        let pos_second = html.find("<td>second</td>").unwrap();
-        assert!(
-            pos_second < pos_first,
-            "most recent block (\"second\") must appear before older block (\"first\")"
-        );
-    }
 
     #[tokio::test]
     async fn health_ok() {
@@ -771,34 +477,6 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
-    async fn block_page_found() {
-        let resp = app(AppState::new(node_with_one_block()))
-            .oneshot(
-                Request::builder()
-                    .uri("/block/0")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
-    async fn block_page_missing_is_404() {
-        let resp = app(AppState::new(node_with_one_block()))
-            .oneshot(
-                Request::builder()
-                    .uri("/block/99")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]
