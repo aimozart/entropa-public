@@ -29,98 +29,24 @@
 //! with the key's owning partner name, so it can't be spoofed. When no keys are
 //! configured, the endpoint stays open (the public open-core demo's default).
 
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use axum::{error_handling::HandleErrorLayer, BoxError};
+use axum::error_handling::HandleErrorLayer;
 use axum::{
-    extract::{Path, Query, State},
-    http::{header, HeaderMap, StatusCode},
+    http::{header, HeaderMap},
     response::{Html, IntoResponse},
     routing::{get, post},
-    Json, Router,
+    Router,
 };
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 
-use entropa_core::{Block, Transaction};
-use entropa_node::Node;
-
 mod html;
 mod routes;
+mod state;
 #[cfg(test)]
 mod test_support;
 
-/// A token bucket for one partner's per-key rate limit: refills continuously at
-/// `PER_KEY_RATE` tokens/second up to `PER_KEY_BURST` capacity; each request costs one
-/// token. Simpler than a sliding-window log (O(1) per check, not O(requests-in-window)),
-/// and doesn't need a background sweep task the way a fixed-window counter would.
-struct RateBucket {
-    tokens: f64,
-    last_refill: std::time::Instant,
-}
-
-const PER_KEY_RATE: f64 = 20.0;
-const PER_KEY_BURST: f64 = 20.0;
-
-/// `true` if the request is allowed (and consumes a token); `false` if this partner is
-/// over their own rate limit right now. Independent per partner — one partner maxing out
-/// their budget has zero effect on any other partner's.
-fn check_per_key_rate_limit(buckets: &Mutex<HashMap<String, RateBucket>>, key: &str) -> bool {
-    let mut map = buckets.lock().unwrap();
-    let now = std::time::Instant::now();
-    let bucket = map.entry(key.to_string()).or_insert_with(|| RateBucket {
-        tokens: PER_KEY_BURST,
-        last_refill: now,
-    });
-    let elapsed = now.duration_since(bucket.last_refill).as_secs_f64();
-    bucket.tokens = (bucket.tokens + elapsed * PER_KEY_RATE).min(PER_KEY_BURST);
-    bucket.last_refill = now;
-    if bucket.tokens >= 1.0 {
-        bucket.tokens -= 1.0;
-        true
-    } else {
-        false
-    }
-}
-
-/// Shared application state: the node whose chain we serve.
-#[derive(Clone)]
-pub struct AppState {
-    pub node: Arc<Mutex<Node>>,
-    /// Bearer key → owning partner name. Empty means `/api/tx` is open (dev/demo mode).
-    pub api_keys: Arc<HashMap<String, String>>,
-    /// Per-partner rate-limit state, keyed by partner name (not the raw API key, so
-    /// rotating a partner's key doesn't reset their budget mid-window). Sits on top of
-    /// the global 20 req/s cap on the whole route — that one protects the service from
-    /// being hammered at all; this one protects partners from crowding each other out
-    /// underneath that ceiling.
-    rate_buckets: Arc<Mutex<HashMap<String, RateBucket>>>,
-}
-
-impl AppState {
-    pub fn new(node: Node) -> Self {
-        Self {
-            node: Arc::new(Mutex::new(node)),
-            api_keys: Arc::new(HashMap::new()),
-            rate_buckets: Arc::new(Mutex::new(HashMap::new())),
-        }
-    }
-
-    /// Parse `ENTROPA_API_KEYS`-style config: `"name1:key1,name2:key2"`.
-    pub fn with_api_keys(mut self, spec: &str) -> Self {
-        let keys = spec
-            .split(',')
-            .filter_map(|pair| {
-                let (name, key) = pair.split_once(':')?;
-                let (name, key) = (name.trim(), key.trim());
-                (!name.is_empty() && !key.is_empty()).then(|| (key.to_string(), name.to_string()))
-            })
-            .collect();
-        self.api_keys = Arc::new(keys);
-        self
-    }
-}
+pub use state::AppState;
 
 /// Build the Entropa router — the Scryon page at `/` and the JSON API under `/api`.
 pub fn app(state: AppState) -> Router {
@@ -171,19 +97,19 @@ pub fn app(state: AppState) -> Router {
             "/llms.txt",
             get(|| async { ([(header::CONTENT_TYPE, "text/plain")], LLMS_TXT) }),
         )
-        .route("/api/health", get(health))
-        .route("/api/chain", get(chain))
-        .route("/api/head", get(head))
-        .route("/api/receipt/{id}", get(receipt))
+        .route("/api/health", get(routes::chain_data::health))
+        .route("/api/chain", get(routes::chain_data::chain))
+        .route("/api/head", get(routes::chain_data::head))
+        .route("/api/receipt/{id}", get(routes::receipt::receipt))
         .route(
             "/api/tx",
             // Global cap on the write path — 20 req/s across everyone, a backstop against
             // the service itself getting hammered. Per-key fairness (one partner can't
             // starve another underneath this ceiling) is enforced separately inside
             // `submit_tx` via `AppState.rate_buckets`.
-            post(submit_tx).layer(
+            post(routes::tx::submit_tx).layer(
                 ServiceBuilder::new()
-                    .layer(HandleErrorLayer::new(rate_limit_error))
+                    .layer(HandleErrorLayer::new(routes::tx::rate_limit_error))
                     .layer(BufferLayer::new(1024))
                     .layer(RateLimitLayer::new(20, Duration::from_secs(1))),
             ),
@@ -227,248 +153,13 @@ async fn asset(content_type: &'static str, bytes: &'static [u8]) -> impl IntoRes
     ([(header::CONTENT_TYPE, content_type)], bytes)
 }
 
-async fn health(State(s): State<AppState>) -> Json<serde_json::Value> {
-    let n = s.node.lock().unwrap();
-    Json(serde_json::json!({
-        "status": "ok",
-        "network": "Entropa",
-        "tagline": "Entropa is boring. All we do is keep your AI agents auditable. For pennies. ($0.01/attestation)",
-        "consensus": entropa_node::consensus::NAME,
-        "signature": "ML-DSA (NIST FIPS-204)",
-        "height": n.height(),
-    }))
-}
-
-/// `?limit=` (default 1000, capped at 2000) and `?offset=` (default: the tail of the
-/// chain, i.e. the most recent blocks) — the full chain is too large for one Cloud Run
-/// response once it grows past a few thousand blocks; walk it with `offset` for history.
-#[derive(serde::Deserialize)]
-struct ChainQuery {
-    limit: Option<usize>,
-    offset: Option<usize>,
-}
-
-async fn chain(State(s): State<AppState>, Query(q): Query<ChainQuery>) -> Json<Vec<Block>> {
-    let n = s.node.lock().unwrap();
-    let total = n.chain.blocks.len();
-    let limit = q.limit.unwrap_or(1000).min(2000);
-    let offset = q.offset.unwrap_or_else(|| total.saturating_sub(limit));
-    let end = (offset + limit).min(total);
-    let page = n.chain.blocks.get(offset.min(total)..end).unwrap_or(&[]);
-    Json(page.to_vec())
-}
-
-/// The **Attestation Receipt** — the proof a customer hands to their own auditor
-/// for a specific recorded action. Looked up by the `content_hash` returned from
-/// `POST /api/tx` at submission time, independent of which block/index it ended
-/// up in.
-///
-/// Every field an auditor needs to independently re-verify is included — not just
-/// asserted from storage, but *recomputed fresh* on every request
-/// (`independent_verification`), so "trust us" is never required. A plain-English
-/// translation sits alongside the raw cryptographic fields, so the same document
-/// works whether the reader is a compliance officer or a security engineer.
-async fn receipt(
-    State(s): State<AppState>,
-    Path(id): Path<String>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let n = s.node.lock().unwrap();
-    for block in &n.chain.blocks {
-        let Some(tx) = block.transactions.iter().find(|t| t.content_hash() == id) else {
-            continue;
-        };
-
-        let digest = entropa_core::block_digest(
-            block.index,
-            block.timestamp,
-            &block.prev_hash,
-            &block.beacon,
-            &block.transactions,
-            &block.proposer_id,
-        );
-        let hash_matches = hex::encode(digest) == block.hash;
-        let signature_valid =
-            entropa_core::verify_hex(&block.proposer_pubkey, &digest, &block.signature);
-
-        return Ok(Json(serde_json::json!({
-            "receipt_id": id,
-            "status": "confirmed",
-            "plain_english": {
-                "summary": format!(
-                    "This action was permanently recorded by Entropa at height {}. It has been \
-                     cryptographically signed and independently re-verified just now — it cannot \
-                     be altered or deleted without that tampering being immediately detectable. \
-                     You do not need to trust Entropa's word for this; you or your auditor can \
-                     recompute every check below yourselves.",
-                    block.index
-                ),
-                "what_happened": format!("Probe \"{}\" recorded a \"{}\" action.", tx.from, tx.kind),
-                "the_fingerprint": "The block hash below is a unique digital fingerprint of this \
-                     exact record. Changing even one character of the underlying data would \
-                     produce a completely different fingerprint — so a matching fingerprint is \
-                     proof nothing has been altered.",
-                "the_signature": "The signature proves this specific, identifiable Probe created \
-                     this record — using a post-quantum signature scheme (ML-DSA), designed to \
-                     stay secure even against future quantum computers, not just today's.",
-                "the_ordering_proof": "The beacon value proves the recording order wasn't \
-                     manipulated by Entropa itself — it comes from a public randomness source \
-                     (drand) that Entropa does not control.",
-            },
-            "transaction": {
-                "from": tx.from,
-                "kind": tx.kind,
-                "payload": tx.payload,
-            },
-            "technical": {
-                "block_index": block.index,
-                "block_timestamp": block.timestamp,
-                "beacon": block.beacon,
-                "proposer_id": block.proposer_id,
-                "proposer_pubkey": block.proposer_pubkey,
-                "block_hash": block.hash,
-                "signature": block.signature,
-                "hash_algorithm": "BLAKE3",
-                "signature_algorithm": "ML-DSA-65 (NIST FIPS-204)",
-            },
-            "independent_verification": {
-                "hash_recomputed_and_matches": hash_matches,
-                "signature_verified": signature_valid,
-                "note": "These two checks were re-performed fresh, right now, against the raw \
-                     block data — not read from a cached or stored 'verified' flag.",
-            },
-        })));
-    }
-    Err(StatusCode::NOT_FOUND)
-}
-
-async fn head(State(s): State<AppState>) -> Json<Option<Block>> {
-    let n = s.node.lock().unwrap();
-    Json(n.chain.head().cloned())
-}
-
-/// Turns a buffered/rate-limited request's failure (queue full, or over the rate cap)
-/// into a proper HTTP response instead of the connection just dying.
-async fn rate_limit_error(err: BoxError) -> (StatusCode, String) {
-    (
-        StatusCode::TOO_MANY_REQUESTS,
-        format!("rate limited: {err}"),
-    )
-}
-
-/// Pull the bearer token out of `Authorization: Bearer <key>`, if present.
-fn bearer_token(headers: &HeaderMap) -> Option<&str> {
-    headers
-        .get(header::AUTHORIZATION)
-        .and_then(|h| h.to_str().ok())
-        .and_then(|h| h.strip_prefix("Bearer "))
-}
-
-async fn submit_tx(
-    State(s): State<AppState>,
-    headers: HeaderMap,
-    Json(mut tx): Json<Transaction>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    if !s.api_keys.is_empty() {
-        let partner = bearer_token(&headers)
-            .and_then(|token| s.api_keys.get(token))
-            .ok_or(StatusCode::UNAUTHORIZED)?;
-        if !check_per_key_rate_limit(&s.rate_buckets, partner) {
-            return Err(StatusCode::TOO_MANY_REQUESTS);
-        }
-        // The authenticated key's owner overrides whatever `from` the client sent —
-        // a partner can't submit a transaction claiming to be someone else.
-        tx.from = partner.clone();
-    }
-    let receipt_id = tx.content_hash();
-    let mut n = s.node.lock().unwrap();
-    n.submit(tx);
-    Ok(Json(serde_json::json!({
-        "accepted": true,
-        "pending": n.mempool.len(),
-        "receipt_id": receipt_id,
-        "receipt_note": "Not yet proof of anything — this only confirms your transaction is \
-             queued. Within a few seconds it will be included in a signed block; poll \
-             GET /api/receipt/{receipt_id} to get the actual Attestation Receipt.",
-    })))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::test_support::node_with_one_block;
     use axum::body::Body;
-    use axum::http::Request;
-    use entropa_core::Probe;
-    use entropa_node::Validator;
+    use axum::http::{Request, StatusCode};
     use tower::ServiceExt;
-
-    #[tokio::test]
-    async fn health_ok() {
-        let resp = app(AppState::new(node_with_one_block()))
-            .oneshot(
-                Request::builder()
-                    .uri("/api/health")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
-    async fn chain_returns_ok() {
-        let resp = app(AppState::new(node_with_one_block()))
-            .oneshot(
-                Request::builder()
-                    .uri("/api/chain")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-    }
-
-    /// Regression test for the 2026-08-12 incident: `/api/chain` used to dump the entire
-    /// chain unpaginated, which exceeded Cloud Run's response-size limit once the live
-    /// chain passed a few thousand blocks. Builds a chain well past the default page size
-    /// and asserts the default response stays bounded, proving pagination actually caps
-    /// it rather than just being available as an unused option.
-    #[tokio::test]
-    async fn chain_default_response_is_bounded() {
-        let probe = Probe::spawn();
-        let validators = vec![Validator::new(probe.id(), probe.pubkey_hex())];
-        let mut node = Node::new(probe, validators);
-        for i in 0..1200u64 {
-            node.try_produce(i, 1_000 + i);
-        }
-        assert!(
-            node.chain.blocks.len() > 1000,
-            "test setup must exceed the default page size"
-        );
-
-        let resp = app(AppState::new(node))
-            .oneshot(
-                Request::builder()
-                    .uri("/api/chain")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-
-        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let blocks: Vec<Block> = serde_json::from_slice(&body).unwrap();
-        assert_eq!(
-            blocks.len(),
-            1000,
-            "default /api/chain response must stay capped even when the chain is much larger"
-        );
-    }
 
     #[tokio::test]
     async fn root_serves_scryon() {
@@ -511,156 +202,5 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
-    async fn receipt_returns_proof_for_known_transaction() {
-        let node = node_with_one_block();
-        let known_tx_id = node.chain.blocks[0].transactions[0].content_hash();
-        let resp = app(AppState::new(node))
-            .oneshot(
-                Request::builder()
-                    .uri(format!("/api/receipt/{known_tx_id}"))
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-
-        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-        assert_eq!(
-            json["independent_verification"]["hash_recomputed_and_matches"],
-            true
-        );
-        assert_eq!(json["independent_verification"]["signature_verified"], true);
-        assert_eq!(json["technical"]["block_index"], 0);
-    }
-
-    #[tokio::test]
-    async fn receipt_404s_for_unknown_id() {
-        let resp = app(AppState::new(node_with_one_block()))
-            .oneshot(
-                Request::builder()
-                    .uri("/api/receipt/not-a-real-receipt-id")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
-    }
-
-    #[tokio::test]
-    async fn tx_response_includes_receipt_id() {
-        let resp = app(AppState::new(node_with_one_block()))
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/api/tx")
-                    .header("content-type", "application/json")
-                    .body(Body::from(
-                        r#"{"from":"anyone","kind":"attest","payload":"hi"}"#,
-                    ))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-
-        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-        assert!(!json["receipt_id"].as_str().unwrap().is_empty());
-    }
-
-    #[tokio::test]
-    async fn tx_open_when_no_keys_configured() {
-        let resp = app(AppState::new(node_with_one_block()))
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/api/tx")
-                    .header("content-type", "application/json")
-                    .body(Body::from(
-                        r#"{"from":"anyone","kind":"attest","payload":"hi"}"#,
-                    ))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
-    async fn tx_rejects_missing_key_when_keys_configured() {
-        let state = AppState::new(node_with_one_block()).with_api_keys("acme:secret123");
-        let resp = app(state)
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/api/tx")
-                    .header("content-type", "application/json")
-                    .body(Body::from(
-                        r#"{"from":"anyone","kind":"attest","payload":"hi"}"#,
-                    ))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
-    }
-
-    #[tokio::test]
-    async fn tx_accepts_valid_key_and_overrides_from() {
-        let state = AppState::new(node_with_one_block()).with_api_keys("acme:secret123");
-        let n = Arc::clone(&state.node);
-        let resp = app(state)
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/api/tx")
-                    .header("content-type", "application/json")
-                    .header("authorization", "Bearer secret123")
-                    .body(Body::from(
-                        r#"{"from":"spoofed","kind":"attest","payload":"hi"}"#,
-                    ))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        let locked = n.lock().unwrap();
-        let pending = locked.mempool.pending();
-        assert_eq!(pending.len(), 1);
-        assert_eq!(
-            pending[0].from, "acme",
-            "authenticated `from` must win over the client-supplied one"
-        );
-    }
-
-    /// Regression test for per-key rate limiting: one partner exhausting their own budget
-    /// must have zero effect on any other partner's budget -- the whole point of moving
-    /// off the single shared global bucket.
-    #[test]
-    fn per_key_rate_limit_is_independent_per_partner() {
-        let buckets: Mutex<HashMap<String, RateBucket>> = Mutex::new(HashMap::new());
-
-        for _ in 0..(PER_KEY_BURST as usize) {
-            assert!(check_per_key_rate_limit(&buckets, "acme"));
-        }
-        assert!(
-            !check_per_key_rate_limit(&buckets, "acme"),
-            "acme should be out of budget after exhausting its burst capacity"
-        );
-
-        assert!(
-            check_per_key_rate_limit(&buckets, "other-partner"),
-            "a different partner must be unaffected by acme's exhausted budget"
-        );
     }
 }
