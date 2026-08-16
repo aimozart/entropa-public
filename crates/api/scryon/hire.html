@@ -71,7 +71,12 @@
 
     <div class="card">
       <h2>How aimozart ships</h2>
-      <p>Sprint-focused and iterative, not a big-bang release cadence — get something real in front of users, then tighten it fast based on what actually breaks. Entropa's own build history is the evidence, not a claim about process: three separate live bugs were found, root-caused, fixed, tested, and redeployed <strong>the same day</strong> they surfaced, each one immediately followed by a regression test and a permanent guardrail so it can't silently recur (see the <a href="https://github.com/aimozart/entropa-public/blob/main/OBSERVABILITY.md">failure-modes table</a> — every incident lists its root cause next to the fix that now prevents it). That's the actual working style: ship, observe, fix fast, harden, repeat — agile as a practice, not a slide.</p>
+      <p>Sprint-focused and iterative — get something real in front of users, then tighten it based on what actually breaks. But speed was never the headline; the discipline behind it is. Entropa's own build history is the evidence, not a claim about process: three separate live bugs were found, root-caused, fixed, tested, and redeployed the same day they surfaced, each one immediately followed by a regression test and a permanent guardrail so it can't silently recur (see the <a href="https://github.com/aimozart/entropa-public/blob/main/OBSERVABILITY.md">failure-modes table</a> — every incident lists its root cause next to the fix that now prevents it). Ship, observe, fix, harden, repeat — the "fast" part is a byproduct of that loop, not a shortcut through it.</p>
+    </div>
+
+    <div class="card">
+      <h2>Safety is enforced, not promised</h2>
+      <p>Every claim on this site about security or code quality is backed by a check that actually runs, not a badge that just sits there. Secret scanning (<code>gitleaks</code>) is wired into a pre-commit hook and CI on every push — verified by deliberately planting a fake credential and confirming the gate actually blocks it, not just assumed to work. Dependency vulnerabilities are checked continuously, on every push and a daily schedule, so a newly disclosed CVE against an already-installed package gets caught within a day even with zero code changes. 65 automated tests run across the whole workspace, covering exactly the properties that matter for a system holding an audit trail: tamper detection, rollback recovery, and bounded memory under sustained load. Every architecture or safety decision gets a written outcome — what was expected, what was actually observed, with the command that proves it — not just a plan that was never checked against reality.</p>
     </div>
 
     <div class="card">
