@@ -1,0 +1,16 @@
+title = "entropa-chain gitleaks config"
+
+[extend]
+useDefault = true
+
+# entropa-core/tests/vectors and nist_kat.rs embed official FIPS-204 ACVP test vectors -
+# hex-encoded key material shaped exactly like real secrets to a scanner, but it's NIST's
+# own published, standardized, public test data, never a real credential. See
+# SECURITY.md § Known safe pattern: NIST KAT vectors. Not currently triggering any default
+# rule (confirmed via `gitleaks detect --source .` against full history), added proactively
+# so a future rule change or scanner doesn't silently start flagging known-safe fixtures.
+[allowlist]
+paths = [
+  '''crates/core/tests/vectors/.*''',
+  '''crates/core/tests/nist_kat\.rs''',
+]
