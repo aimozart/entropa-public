@@ -71,6 +71,20 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn healthz_alias_matches_api_health() {
+        let resp = app(AppState::new(node_with_one_block()))
+            .oneshot(
+                Request::builder()
+                    .uri("/healthz")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
     async fn chain_returns_ok() {
         let resp = app(AppState::new(node_with_one_block()))
             .oneshot(
