@@ -7,7 +7,8 @@
 //! Routes:
 //! - `GET  /`            — the Scryon explorer (static HTML, works with JS off)
 //! - `GET  /assets/*`     — the aimozart / Entropa mark, embedded favicons
-//! - `GET  /api/health`  — network + consensus + signature scheme + height
+//! - `GET  /api/health`, `GET /healthz` — network + consensus + signature scheme + height
+//!   (`/healthz` is an alias for the same handler, for tooling that expects that path)
 //! - `GET  /api/chain`   — a page of blocks as JSON (`?limit=`, `?offset=`; defaults to the
 //!   most recent 1000 — the full chain is too large for a single response once the chain
 //!   grows past a few thousand blocks, so walk it with `offset` for anything older)
@@ -98,6 +99,10 @@ pub fn app(state: AppState) -> Router {
             get(|| async { ([(header::CONTENT_TYPE, "text/plain")], LLMS_TXT) }),
         )
         .route("/api/health", get(routes::chain_data::health))
+        // Alias for the /healthz convention (Kubernetes/Cloud Run health-check
+        // scanners and tooling commonly look for this exact path) — same handler,
+        // same response, just a second path to the same signal.
+        .route("/healthz", get(routes::chain_data::health))
         .route("/api/chain", get(routes::chain_data::chain))
         .route("/api/head", get(routes::chain_data::head))
         .route("/api/receipt/{id}", get(routes::receipt::receipt))

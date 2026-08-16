@@ -18,7 +18,7 @@ cargo test --workspace
 
 - **12 source files** contain `#[cfg(test)] mod tests` blocks (`entropa-api`, `entropa-core`,
   `entropa-node`).
-- **64 passing tests** total (`cargo test --workspace`).
+- **65 passing tests** total (`cargo test --workspace`).
 - **1 integration test file** under `crates/core/tests/nist_kat.rs` — official FIPS-204 ACVP vectors,
   byte-exact ML-DSA-65 correctness against NIST's own published reference data.
 
