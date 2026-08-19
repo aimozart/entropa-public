@@ -38,7 +38,30 @@ old): 102 passing tests across 19 source files, plus 1 true integration test fil
 **Review rule:** count Rust tests by running `cargo test --workspace` and inspecting co-located
 `#[cfg(test)]` modules, not only by counting files under `tests/`.
 
-## 3. The real, standing improvement area
+## 3. Working with automated review (Paxel, 2026-08-18/19)
+
+Two of the three findings above came from a real automated-review pass ([Paxel](https://paxel.ycombinator.com),
+Y Combinator's builder-report tool) and were worked through iteratively rather than either
+dismissed or accepted at face value:
+
+1. Paxel's first-pass report flagged "2 potential hardcoded secrets" and "1 detected test file" as
+   near-hard-gate findings.
+2. Each was independently re-verified against real tools — `gitleaks` (0 leaks across full git
+   history) and `cargo test --workspace` (102 passing tests, 19 source files) — before accepting or
+   rejecting the finding.
+3. Paxel was shown that evidence and agreed both were detector limitations (public NIST test
+   vectors misread as secrets; co-located Rust tests undercounted by a `tests/`-directory-only
+   heuristic), not real engineering gaps — while confirming its behavioral critique (decisions need
+   durable proof artifacts, not just good judgment in the moment) was valid and worth keeping.
+4. That correction became this file, `scripts/verify.sh`, inline notes at the actual flagged data,
+   and root-level `README.md` sections — placed where automated review is most likely to look
+   directly, not just documented somewhere a human would find it.
+
+The takeaway generalizes past this one tool: **verify a finding before accepting or dismissing it,
+on either side** — an automated reviewer's raw output is a lead, not a verdict, and neither is a
+human's first reaction to it.
+
+## 4. The real, standing improvement area
 
 The valid improvement area is not "no tests" or "hardcoded secrets" — both are detector
 limitations, not engineering gaps, per the two sections above. The valid improvement area is
