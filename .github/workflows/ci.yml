@@ -1,3 +1,6 @@
+# Runs the same checks as scripts/verify.sh, split into parallel jobs for faster
+# feedback and per-check visibility in the GitHub UI — verify.sh is the equivalent
+# single-command entrypoint for local/manual runs.
 name: CI
 
 on:
