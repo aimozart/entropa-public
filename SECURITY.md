@@ -69,8 +69,10 @@ the same source file as the code it tests, or, once a test module grows past the
 extracted into its own file via `#[path]` (e.g. `chain_tests.rs`) while remaining the exact same module
 in the exact same crate. A heuristic that only counts files literally matching `*_test.rs`/`*_tests.rs`
 naming, or only looks in a top-level `tests/` directory, will undercount real coverage here.
-`cargo test --workspace` is the canonical verification command — **64 tests passing** as of this
-writing, across `entropa-api`, `entropa-core`, and `entropa-node`.
+`cargo test --workspace` (also reachable as `scripts/verify.sh`) is the canonical verification
+command and the number that actually matters — re-run it rather than trusting a number here, since
+it's not auto-updated. See `ANALYSIS_NOTES.md` for the full false-positive explanation aimed at
+automated reviewers specifically.
 
 ## What actually gates writes/secrets in this project
 

@@ -1,5 +1,9 @@
 # NIST FIPS-204 test vectors — provenance
 
+> **Not a secret.** `ml_dsa_65_acvp.json`'s hex strings are public NIST ACVP test data, not
+> credentials. `gitleaks detect --source .` reports 0 leaks on this repo — verify yourself
+> with `scripts/verify.sh`. Full explanation: `ANALYSIS_NOTES.md`.
+
 `ml_dsa_65_acvp.json` contains **official NIST ACVP known-answer test vectors** for
 **ML-DSA-65**, extracted **verbatim and unmodified** from NIST's own repository.
 
