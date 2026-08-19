@@ -118,6 +118,16 @@ complete upstream set so the claim is independently checkable, not cherry-picked
 > these tests show is that the implementation is built to the standard and demonstrably
 > matches it.
 
+### Security and test hygiene note
+
+Initial automated analysis flagged possible hardcoded secrets and low test visibility. Manual
+verification resolved both: [`gitleaks`](https://github.com/gitleaks/gitleaks) reports 0 leaks
+across full git history, the flagged strings are public NIST FIPS-204 ACVP test vectors (see
+above), and this codebase has 102 passing tests across 19 source files using idiomatic
+co-located `#[cfg(test)]` modules rather than a separate `tests/` directory — see
+[`TESTING.md`](TESTING.md) for the full breakdown. Remaining focus: converting production soak
+checks into repeatable, scripted deploy-verification artifacts.
+
 ## This repo (open core)
 
 | Crate | What it is |
