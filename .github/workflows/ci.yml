@@ -40,6 +40,13 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
 
+  file-size-ceiling:
+    name: file size ceiling (L20)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/check-file-sizes.sh
+
   docker-build:
     name: docker build
     runs-on: ubuntu-latest

@@ -13,6 +13,9 @@ cargo clippy --workspace --all-targets -- -D warnings
 echo "== cargo test --workspace =="
 cargo test --workspace
 
+echo "== file size ceiling (L20) =="
+./scripts/check-file-sizes.sh
+
 echo "== gitleaks (secret scan) =="
 ./scripts/security/secret-scan.sh
 
