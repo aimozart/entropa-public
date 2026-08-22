@@ -103,7 +103,7 @@ impl Node {
     }
 
     pub fn height(&self) -> usize {
-        self.chain.len()
+        self.chain.height() as usize
     }
 }
 
@@ -122,6 +122,28 @@ mod tests {
             .into_iter()
             .map(|p| Node::new(p, validators.clone()))
             .collect()
+    }
+
+    #[test]
+    fn height_reflects_true_logical_height_not_just_in_memory_block_count() {
+        // A bounded chain (Chain::bound_to_window) holds fewer blocks in memory than
+        // its true height once eviction has happened - Node::height() must use
+        // Chain::height() (base_index + blocks.len()), not Chain::len() (just
+        // blocks.len()), or every caller of Node::height() silently under-reports
+        // once bounding is wired in.
+        let probe = Probe::spawn();
+        let validators = vec![Validator::new(probe.id(), probe.pubkey_hex())];
+        let mut node = Node::new(probe, validators);
+        for round in 0..10u64 {
+            node.try_produce(round, 1_000 + round);
+        }
+        let full_height = node.height();
+        node.chain = node.chain.clone().bound_to_window(3);
+        assert_eq!(
+            node.height(),
+            full_height,
+            "Node::height() must stay correct after bounding, not drop to the in-memory window size"
+        );
     }
 
     #[test]
