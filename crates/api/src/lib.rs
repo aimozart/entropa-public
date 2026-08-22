@@ -42,6 +42,7 @@ use axum::{
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 
 mod html;
+pub mod persistence;
 mod routes;
 mod state;
 #[cfg(test)]

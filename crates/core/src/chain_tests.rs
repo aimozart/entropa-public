@@ -369,6 +369,34 @@ fn repeated_eviction_keeps_memory_flat_regardless_of_total_height() {
 }
 
 #[test]
+#[ignore = "slow (~minutes, ML-DSA signing dominates): exercises the real production \
+            IN_MEMORY_WINDOW (20,000, see crates/api/src/main.rs) at scale rather than a toy \
+            window. Run explicitly with `cargo test -- --ignored` before any change to the \
+            bounding logic or the window constant, not on every `cargo test --workspace`."]
+fn repeated_eviction_stays_flat_at_the_real_production_window() {
+    // Same property as repeated_eviction_keeps_memory_flat_regardless_of_total_height, but
+    // at the actual deployed window size instead of a toy value — this is the direct forecast
+    // of the real production configuration's memory behavior at scale, not just the algorithm's
+    // shape. Overshoots the window by 10% (22,000 total) rather than repeating the generic
+    // test's 12x ratio, since that ratio is already proven window-size-independent above.
+    const WINDOW: usize = 20_000;
+    let founder = Probe::spawn();
+    let mut chain = Chain::genesis(&founder, 1_000, beacon::sample(0));
+    for i in 1..22_000u64 {
+        chain.propose(&founder, 1_000 + i, beacon::sample(i), Vec::new());
+        chain = chain.bound_to_window(WINDOW);
+        assert!(
+            chain.blocks.len() <= WINDOW,
+            "in-memory footprint exceeded the real production window at height {}",
+            chain.height()
+        );
+    }
+    assert_eq!(chain.height(), 22_000);
+    assert_eq!(chain.blocks.len(), WINDOW);
+    assert_eq!(chain.verify(), Ok(()));
+}
+
+#[test]
 fn bounded_chain_try_append_rejects_wrong_index_relative_to_floor() {
     let chain = long_valid_chain(300).bound_to_window(50);
     let rogue = Probe::spawn();

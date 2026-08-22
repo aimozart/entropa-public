@@ -12,14 +12,22 @@
 //! Cloud Run (e.g. local `cargo run`), persistence is a no-op and the chain is
 //! in-memory only, exactly as before.
 
-mod persistence;
-
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use entropa_api::persistence;
 use entropa_api::{app, AppState};
 use entropa_core::{Chain, Probe, Transaction};
 use entropa_node::{Node, Validator};
+
+/// How many of the most recent blocks stay in memory (`Chain::bound_to_window`) —
+/// applied on resume and continuously after every produced block, so RAM usage
+/// stays flat as height grows instead of growing without bound. Mirrors the private
+/// build's identical constant/reasoning (`entropa-chain/crates/api/src/main.rs`) —
+/// see `SESSION_STATE.md` § Bounded-memory chain architecture there for the full
+/// incident history; this file isn't mirrored between the two repos, so the wiring
+/// has to be applied here independently rather than copied.
+const IN_MEMORY_WINDOW: usize = 20_000;
 
 fn now() -> u64 {
     SystemTime::now()
@@ -72,7 +80,7 @@ async fn main() {
                 println!(
                     "📦 resumed chain from persisted state — epoch {epoch_id}, height {round}"
                 );
-                node.chain = recovered;
+                node.chain = recovered.bound_to_window(IN_MEMORY_WINDOW);
                 epoch_id
             } else {
                 // A gap was found within the *current* epoch. Recover what's valid,
@@ -91,8 +99,8 @@ async fn main() {
                 let new_epoch = persistence::new_epoch_id();
                 persistence::set_epoch_parent(&new_epoch, &epoch_id).await;
                 persistence::set_current_epoch(&new_epoch).await;
-                node.chain = recovered;
-                round = node.chain.len() as u64;
+                node.chain = recovered.bound_to_window(IN_MEMORY_WINDOW);
+                round = node.chain.height();
                 println!(
                     "🔀 rotated to new epoch {new_epoch} (parent {epoch_id}) — resuming from \
                      height {round}"
@@ -125,8 +133,8 @@ async fn main() {
                 persistence::save_block(&new_epoch, b).await;
             }
             persistence::set_current_epoch(&new_epoch).await;
-            node.chain = recovered;
-            round = node.chain.len() as u64;
+            node.chain = recovered.bound_to_window(IN_MEMORY_WINDOW);
+            round = node.chain.height();
             println!(
                 "🔀 migrated {round} block(s) from legacy flat storage into new epoch \
                  {new_epoch} — legacy storage is now frozen and will never be written to again"
@@ -135,7 +143,7 @@ async fn main() {
         }
     };
 
-    let mut state = AppState::new(node);
+    let mut state = AppState::new(node).with_active_epoch(&active_epoch);
     match std::env::var("ENTROPA_API_KEYS") {
         Ok(spec) if !spec.trim().is_empty() => {
             state = state.with_api_keys(&spec);
@@ -164,10 +172,18 @@ async fn main() {
                 let tx = demo_decision(round, n.mempool.len());
                 n.submit(tx);
                 n.live_beacon = live_beacon;
-                n.try_produce(round, now())
+                let block = n.try_produce(round, now());
+                // Re-bound immediately after producing, inside the same lock as the
+                // append, so RAM stays flat continuously rather than only at resume.
+                n.chain = std::mem::take(&mut n.chain).bound_to_window(IN_MEMORY_WINDOW);
+                block
             };
             if let Some(block) = produced_block {
                 persistence::save_block(&active_epoch, &block).await;
+                for tx in &block.transactions {
+                    persistence::save_receipt_index(&tx.content_hash(), &active_epoch, block.index)
+                        .await;
+                }
             }
             round += 1;
             tokio::time::sleep(Duration::from_secs(3)).await;
