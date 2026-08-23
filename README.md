@@ -49,6 +49,36 @@ Deterministic agentic architecture: the AI is probabilistic, the ledger is not. 
 follows a fixed pipeline — decide → validate → post-quantum sign → append — so the result is always
 a replayable, non-repudiable record, however the model reasoned to get there.
 
+## We get reviewed too — including our reviewer's own bugs
+
+**[Read the full public builder report →](https://paxel.ycombinator.com/results/mga6btfa)**
+
+This project went through a real review cycle with [Paxel](https://paxel.ycombinator.com), YC's
+builder-report tool, on 2026-08-23. Its report flagged three growth areas. We didn't just accept
+or dismiss them — we checked each one against evidence:
+
+- **"2 potential hardcoded secrets"** — false positive. These are public NIST FIPS-204
+  cryptographic test vectors, already documented, confirmed clean by a real secret scanner
+  (`gitleaks`) across all 222 commits.
+- **"7 test files, 0.12 test-to-code ratio"** — a confirmed bug in the review tool itself. A rerun,
+  done *after* adding 6 brand-new test files, still reported the exact same "7 files" — while the
+  same rerun's commit and line counts had genuinely updated. Direct search found 34 files with real
+  tests, not 7. The tool's own follow-up analysis confirmed this: its scanner excludes standard
+  Rust integration tests (`crates/*/tests/`) and shell-based operational tests
+  (`scripts/tests/*.bats`) entirely.
+- **"Additive-heavy, low deletion ratio"** — this one held up. No pushback. Logged as the real next
+  thing to plan for: a dedicated simplification pass, not more tests or safety nets.
+
+What we actually built in response, the same night, all test-first: real contract tests for the
+API/website boundary, a tested deploy/rollback/migration script harness (replacing ad hoc `gcloud`
+commands), and lifecycle tests for the leader-election safety mechanism that previously had none.
+Two things the review asked for were *deliberately not built* because they'd have meant writing a
+test that asserts something false about the system — that refusal is documented too, not hidden.
+
+Full technical breakdown, evidence, and the case for why this loop — claim, verify, fix or correct,
+record — matters more than a clean-looking score: **[`OBSERVABILITY.md` § Working with automated
+review](OBSERVABILITY.md#working-with-automated-review-paxel-2026-08-23--the-full-story)**.
+
 ## Why you need Entropa
 
 If you're deploying AI agents that take real actions — approving transactions, moving data,
