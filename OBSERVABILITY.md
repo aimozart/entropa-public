@@ -77,6 +77,7 @@ Same night as the incidents above, this project went through a real back-and-for
 with [Paxel](https://paxel.ycombinator.com), YC's builder-report tool. Documenting both sides
 honestly: what its first pass got wrong, what got fixed for real in response, and a confirmed bug
 in its own analysis — transparency cuts both ways, on our code and on the tools reviewing it.
+The actual report, public: [paxel.ycombinator.com/results/mga6btfa](https://paxel.ycombinator.com/results/mga6btfa).
 
 **Confirmed remediation, built and shipped the same session:**
 - **API/Firebase contract tests** (`crates/api/tests/firebase_contract.rs`) — the boundary between
