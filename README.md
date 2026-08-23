@@ -202,6 +202,53 @@ Probe, Gemini-driven on Vertex AI, lives in the private `entropa-agents` crate �
 cargo test --workspace   # 93 tests, all real crypto and consensus logic
 ```
 
+## The real story: built by breaking, in public, and fixing it
+
+Entropa wasn't built clean. It was built by hitting real production failures, catching them with
+real evidence, and fixing them — every time, in public, with the incident left on the record
+instead of quietly edited away. That's not a caveat on the pitch. It's the actual proof the
+architecture works, because a system that's never been tested by a real failure hasn't proven
+anything yet.
+
+**The chain got corrupted, twice, before it got a real safety mechanism.** Early on, Cloud Run's
+own deploy mechanics (draining traffic to an old revision while a new one starts) let two
+instances write blocks to the same storage at the same time — real chain corruption, twice, before
+a Firestore-backed leader lease closed the gap for good. See `MILESTONES.md`'s incident record for
+the full account, and `crates/api/src/leader.rs` for the fix that's been running clean since.
+
+**A real memory bug surfaced the same way any production system's does — under sustained load, not
+in a demo.** Holding the entire chain history in memory works fine at low height and silently stops
+working as height grows. It was caught during a real soak test, not a code review, and fixed with a
+bounded in-memory window backed by a durable-storage fallback — the same pattern that's now proven
+under real, sustained production traffic.
+
+**The public website and the validator consensus process were the same binary since day one — and
+nobody caught it, including the assistant that wrote most of this code, across dozens of sessions.**
+It took a direct, plain question — "why does a validator serve the website?" — to surface an
+architectural coupling that had been sitting in this project's own diagrams the whole time. Full,
+unsparing account, including exactly who caught it and how, in
+[`OBSERVABILITY.md`](OBSERVABILITY.md#known-failure-modes-prevent-recurrence-dont-just-fix-and-forget).
+
+**A real bug shipped, a real visitor hit it, and it was fixed and deployed the same night it was
+found.** A block-detail page 404'd for every real block after a memory-bounding fix landed — found
+because a real person clicked a real link, not by any test. Fixed test-first within the hour,
+deployed to all 3 validators, confirmed live.
+
+**And a review tool's own bug got the same treatment as our code's bugs** — see the section above.
+Two of its three findings were verified false with direct evidence and corrected in the record; the
+one real finding got built, test-first, the same night.
+
+**Why this is the actual case for Entropa, not just a founder's story:** every one of these was a
+real production failure in a system whose entire purpose is being the thing you trust when
+something needs to be provably true later. If this project hid its own incidents, that would be
+disqualifying — the whole pitch is "don't trust our word, verify it yourself." Instead, every
+failure above is on the record, with the evidence that proves it was actually fixed: real height
+climbing through the exact incidents that could have stopped it, real tests that fail for the
+stated reason before they pass, a real 3-of-3 cryptographic quorum signature as proof the consensus
+mechanism genuinely works under production conditions, not just in a unit test. That's the bet this
+project is making — not that it never breaks, but that when it does, you'll see exactly how, and
+exactly what changed so it doesn't happen the same way twice.
+
 ## Why Rust
 
 Systems-grade safety and performance for cryptographic infrastructure — memory-safe by
