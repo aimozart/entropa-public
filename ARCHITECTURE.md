@@ -29,8 +29,22 @@ flowchart TB
   end
 
   Beacon["Public randomness beacon (drand)"] --> PoE
-  API --> Scryon["Scryon explorer + /flow<br/>same Cloud Run binary, Host-header routed<br/>HTML embedded at compile time"]
+
+  subgraph SITE["Firebase Hosting · static, zero crypto deps"]
+    Scryon["entropa.space landing page<br/>Scryon explorer + /flow"]
+  end
+  Scryon -->|"fetch() — read-only, CORS"| API
 ```
+
+**Corrected 2026-08-23** — until this date, the box above labeled `Scryon` was not a
+separate service: it was routes baked into the *same Cloud Run binary* as `API`, routed by
+HTTP `Host` header, meaning the validator's consensus process and the public marketing
+site were literally one deployable unit. This was a real architectural mistake present
+since the project's first deploy, not a simplification made for this diagram — see
+`OBSERVABILITY.md` § Known failure modes, 2026-08-12 → 2026-08-23 row, for the honest
+account of how long it went unnoticed and what it cost. The diagram above reflects the
+corrected, separated topology; the row in `OBSERVABILITY.md` is the record that it wasn't
+always this way.
 
 ## The "prove it, don't trust me" flow
 
