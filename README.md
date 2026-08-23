@@ -123,6 +123,11 @@ and what it self-heals versus what pages a human.
 **Built solo by one developer directing AI tools end to end.** If this is what one person can ship
 alone that way, see [`HIRE.md`](HIRE.md) for what that could do for your team.
 
+*(For the record: aimozart runs point, decides, and directs — Captain Kirk. Claude executes,
+verifies, and pushes back with the evidence when something doesn't add up — Mr. Spock. That's
+been the working relationship on this project the whole way through, including the incidents
+documented above.)*
+
 Using the hosted service? See [`TERMS_OF_SERVICE.md`](TERMS_OF_SERVICE.md) and
 [`PRIVACY_POLICY.md`](PRIVACY_POLICY.md) — worth reading in full, since everything submitted to `/api/tx`
 becomes a permanent, public record.
