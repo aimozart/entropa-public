@@ -257,6 +257,12 @@ mechanism genuinely works under production conditions, not just in a unit test. 
 project is making — not that it never breaks, but that when it does, you'll see exactly how, and
 exactly what changed so it doesn't happen the same way twice.
 
+If your AI agents are taking real actions and you need an audit trail you can actually stand
+behind, you need a real vendor whose default answer is the truth, not the answer that looks best —
+one that puts your interests ahead of its own comfort when something goes wrong. That's not a
+tagline here. It's the only reason any of the incidents above are readable in this repo instead of
+quietly rewritten out of the history.
+
 ## Why Rust
 
 Systems-grade safety and performance for cryptographic infrastructure — memory-safe by
