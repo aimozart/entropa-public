@@ -17,6 +17,11 @@
 [![crates.io: entropa-core](https://img.shields.io/crates/v/entropa-core.svg?label=entropa-core)](https://crates.io/crates/entropa-core)
 [![crates.io: entropa-node](https://img.shields.io/crates/v/entropa-node.svg?label=entropa-node)](https://crates.io/crates/entropa-node)
 [![Trusted Publishing](https://img.shields.io/badge/crates.io-Trusted%20Publisher%20(OIDC)-3ddc84)](https://github.com/aimozart/entropa-public/actions/workflows/publish.yml)
+[![Verified Builder Report](https://img.shields.io/badge/YC%20Paxel-Verified%20Builder%20Report-orange)](https://paxel.ycombinator.com/results/mga6btfa)
+
+**[📋 See the real, public builder report](https://paxel.ycombinator.com/results/mga6btfa)** — an
+independent, evidence-based look at how this project is actually built, including a real incident
+found and fixed the same night, and a confirmed bug in the report's own tooling. Nothing hidden.
 
 </div>
 
