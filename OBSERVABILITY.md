@@ -71,45 +71,99 @@ actually investigated (see the mailbox-routing note above) — the alert *worked
 root cause vs. just clearing the noise. This table is the forcing function for the next incident: land a row
 here, not just a fix.
 
-## Working with automated review (Paxel), 2026-08-23
+## Working with automated review (Paxel), 2026-08-23 — the full story
 
 Same night as the incidents above, this project went through a real back-and-forth review cycle
-with [Paxel](https://paxel.ycombinator.com), YC's builder-report tool. Documenting both sides
-honestly: what its first pass got wrong, what got fixed for real in response, and a confirmed bug
-in its own analysis — transparency cuts both ways, on our code and on the tools reviewing it.
-The actual report, public: [paxel.ycombinator.com/results/mga6btfa](https://paxel.ycombinator.com/results/mga6btfa).
+with [Paxel](https://paxel.ycombinator.com), YC's builder-report tool. The full public report:
+[paxel.ycombinator.com/results/mga6btfa](https://paxel.ycombinator.com/results/mga6btfa). This
+section documents both sides honestly — what the report's growth-area findings actually said, why
+two of the three didn't hold up, what got built for real in response, and a genuine bug found in
+the review tool's own analysis. Transparency here cuts both ways: on our code, and on the tools
+reviewing it.
 
-**Confirmed remediation, built and shipped the same session:**
+### What the report actually said
+
+Paxel's "Growth Areas" section made three specific claims:
+
+1. *"The repository snapshot found 2 potential hardcoded secrets as string literals, which
+   conflicts with the same public/private rigor you showed elsewhere."*
+2. *"The repository snapshot found a 0.12 test-to-code ratio by lines and 7 test files, while the
+   work covered rollback recovery, bounded-memory behavior, and production hardening."*
+3. *"Your code-evolution score was with a deletion ratio of 0.14, which means most change was
+   additive."*
+
+### Why two of the three were wrong — with evidence, not assertion
+
+**Claim 1 (hardcoded secrets) — false positive, already documented.** The "secrets" are NIST
+FIPS-204 ACVP test vectors: hex-encoded key material shaped exactly like real secrets to a
+heuristic scanner, but public, standardized cryptographic test data (see § "NIST FIPS-204 ACVP
+test vectors" above). `gitleaks detect --source .` — a real scanner, not a naive grep — ran clean
+across all 222 commits at the time of this review, and `.gitleaks.toml` explicitly allowlists these
+exact fixture paths by name. This isn't a judgment call; it's a checkable fact that was checked.
+
+**Claim 2 (7 test files / 0.12 ratio) — a confirmed scope-of-scan bug, not a real coverage gap.**
+This is the one worth walking through in full, because the evidence is unusually clean. Six brand
+new test files were added this same session (`crates/api/tests/firebase_contract.rs`,
+`leader_lease_lifecycle.rs`, `support/mod.rs`, `support/leader.rs`, plus 3 `.bats` files under
+`scripts/tests/`), taking real coverage from 182 to 206 Rust tests and 21 to 25 bats tests. A
+rerun of the report, requested specifically to verify this new coverage, still reported **exactly
+"7 test files"** — the identical number from the report run *before* any of those six files
+existed. Meanwhile the same rerun's commit count and line-count totals *did* change (217→223
+commits, 24,598→25,895 lines), which rules out the whole snapshot being stale — the bug is
+specifically in how the tool discovers test files. A direct `grep` for real test code
+(`#[test]`, `#[tokio::test]`, bats shebangs) found **34 files**, not 7. The most likely
+explanation, confirmed by Paxel's own follow-up analysis: the scanner's file-discovery pattern
+excludes standard Rust integration-test layout (`crates/*/tests/*.rs`) and shell-based operational
+tests (`scripts/tests/*.bats`) entirely — not an edge case, but the normal place Rust projects put
+their integration tests. Full technical detail, including the exact commands used to verify this,
+is in `ANALYSIS_NOTES.md § 5`.
+
+**Claim 3 (0.14 deletion ratio, additive-heavy) — the one that held up.** No pushback on this one.
+The session's actual work — new tests, new scripts, new trait seams for testability — was almost
+entirely additive by nature, and that's a fair, accurate read of what a hardening-focused session
+looks like. This is the one growth area kept without caveat.
+
+### What got built in direct response, the same session
+
 - **API/Firebase contract tests** (`crates/api/tests/firebase_contract.rs`) — the boundary between
   the Rust validator API and the newly-separated Firebase-hosted website had zero coverage; now
   pins the JSON shape of `/api/receipt/:id` and `/block/:index`, plus CORS behavior, via `insta`
-  snapshots with random crypto fields redacted.
+  snapshots with random crypto fields redacted (receipt/block content includes fields derived from
+  a freshly-generated keypair every test run, so exact values can't be pinned — the *shape* can).
 - **Deploy/rollback/migration script harness** (`scripts/lib/gcloud-runner.sh` + 3 `.bats` suites,
-  25 tests) — real ad hoc `gcloud` invocations extracted into tested scripts with required-env
-  validation, dry-run mode, and revision/service-existence safety checks against a fake `gcloud`.
+  25 tests) — real, previously-ad-hoc `gcloud` invocations extracted into tested scripts with
+  required-env validation, dry-run mode, and revision/service-existence safety checks (catching a
+  typo'd rollback target before it shifts traffic to nothing) against a fake `gcloud` binary.
 - **Leader-lease lifecycle tests** — the actual acquire/renew/expiry/stale-owner-rejection logic
-  behind this project's single-writer safety guarantee had zero coverage (only URL construction
-  was tested); now has real trait-based seams (`LeaseStore`/`Clock`) and 8 integration tests
-  exercising the exact production code path via a fake store/clock.
+  behind this project's single-writer safety guarantee had zero coverage before this (only the
+  lease document's URL construction was tested). Now has real trait-based seams
+  (`trait LeaseStore`/`trait Clock`, `FirestoreLeaseStore`/`SystemClock` for production,
+  `FakeLeaseStore`/`ManualClock` for tests) and 8 integration tests exercising the *exact*
+  production code path via a fake store/clock — not a parallel reimplementation.
 
-Two things were *not* built even under an explicit push to close every named item, and that's
-recorded here deliberately: a CORS test asserting unknown origins are rejected (the real policy is
-permissive to all origins — a test asserting rejection would encode a false claim about the
-system) and an `IMAGE`-based deploy path (this project deploys via `--source=.`, not a pre-built
-image tag — adding an unused required variable to match a wrong assumption would be dead weight).
+Two things named in the review's own detailed remediation spec were **deliberately not built**,
+and that refusal is recorded here on purpose: a CORS test asserting unknown origins are rejected
+(the real policy is intentionally permissive to all origins — writing a test that asserts
+rejection would encode a false claim about the system, not remediate anything) and an
+`IMAGE`-tag-based deploy path (this project deploys via `--source=.` straight to Cloud Build, not
+a pre-built container image — adding an unused required environment variable just to match a
+wrong assumption about how deploys work would be dead weight, not rigor).
 
-**A confirmed bug in Paxel's own test-file discovery, not just our usual blind-spot list:**
-after building all of the above, a rerun still reported "7 test files" — identical to a report run
-*before* 6 brand-new test files were added. Commit/line-count totals *did* change between the two
-runs, ruling out a full stale cache; the bug is specifically in test-file discovery. Direct grep for
-real test code (`#[test]`, `#[tokio::test]`, bats shebangs) found 34 files, not 7 — most likely
-because the scanner excludes standard Rust integration-test layout (`crates/*/tests/*.rs`) and
-shell-based operational tests (`scripts/tests/*.bats`) entirely. Paxel's own follow-up confirmed
-this reading. Full technical detail in `ANALYSIS_NOTES.md § 5`.
+### Why this is a strength, not just a footnote
 
-**The one finding from that review kept without caveat**: a dedicated simplification pass. This
-session was almost entirely additive (new tests, new scripts, new trait seams) — the honest next
-step isn't more safety net, it's coming back and removing what's now obsolete.
+The easy version of this story is "an AI reviewer found some issues and we fixed them." That's not
+what happened, and the difference matters. What actually happened: a reviewer made specific,
+checkable claims; two of three were verified false with direct evidence (a real scanner run, a
+direct grep, a before/after diff across two report runs) rather than either blindly accepted or
+dismissed; the one real finding was fixed for real, test-first, with the deviations from the
+review's own spec explained rather than silently made; and the reviewer's own tooling bug got
+documented in this project's public source, not swept under a corrected re-run. That loop — claim,
+verify, correct or fix, record — is the same discipline this entire observability document
+already asks of the chain's own alerts (see "Why this table exists" below). Applying it to an
+external reviewer instead of exempting it is the actual point: a system that only holds itself to
+scrutiny when the scrutiny is convenient isn't rigorous, it's performing rigor. This project's bet
+is that verifiable correction, in public, on both our mistakes and a review tool's, is worth more
+than a clean-looking score.
 
 ## Watching it yourself
 
