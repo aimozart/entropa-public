@@ -6,6 +6,8 @@
 
 *Entropa is boring. All we do is keep your AI agents auditable. For pennies.\* (\*$0.01/attestation)*
 
+### Truth. Transparency. Trust.
+
 [![CI](https://github.com/aimozart/entropa-public/actions/workflows/ci.yml/badge.svg)](https://github.com/aimozart/entropa-public/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-57e0c4)](LICENSE-MIT)
 [![Rust](https://img.shields.io/badge/100%25-Rust-orange)](#why-rust)
