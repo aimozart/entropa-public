@@ -67,6 +67,6 @@ The valid improvement area is not "no tests" or "hardcoded secrets" — both are
 limitations, not engineering gaps, per the two sections above. The valid improvement area is
 converting production verification into repeatable artifacts instead of relying on transcript-level
 manual interrogation: deploy verification scripts, soak acceptance criteria, `Chain::verify()`
-checks, attestation persistence checks, receipt survival across redeploy/rollback, demo-dashboard
-copy assertions, and scanner-backed security gates — stating acceptance criteria before non-trivial
-work and pasting proof after, not just judgment calls made from memory.
+checks, attestation persistence checks, receipt survival across redeploy/rollback, and
+scanner-backed security gates — stating acceptance criteria before non-trivial work and pasting
+proof after, not just judgment calls made from memory.

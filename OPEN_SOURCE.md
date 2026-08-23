@@ -5,10 +5,21 @@
 | Crate / asset | License | Why |
 |---|---|---|
 | `entropa-core` | 🔓 MIT (see `LICENSE-MIT`) | PQC identities + chain primitives — public good, builds credibility |
-| `entropa-node` | 🔓 MIT | Mempool + **Proof of Entropy** consensus engine, the beacon spec |
+| `entropa-node` | 🔓 MIT | Mempool + **Proof of Entropy** proposer-selection primitive, the beacon spec |
 | Scryon (`crates/api/scryon/`) | 🔓 MIT | Explorer frontend — transparency + marketing |
 | `entropa-agents` | 🔒 Proprietary | Probe decision logic / prompts — the actual secret sauce |
+| **N=3 quorum consensus layer** | 🔒 Proprietary | Real production multi-validator agreement + VRF-based leaderless fallback election, built on top of the open Proof of Entropy primitive — not in this repo, see below |
 | Hosted API / managed service | 🔒 Proprietary | The commercial offering |
+
+**On the quorum layer specifically**: the open `entropa-node` crate above gives you a real,
+correct *proposer-selection* primitive (`select_proposer`, seeded by drand) — that part has
+always been open and stays open. What's proprietary is the layer built on top of it that
+actually runs the live network in production: real N=3 multi-party cryptographic quorum
+(majority of independent validators must co-sign a block before it's final), plus a
+VRF-based fallback election so the network keeps producing blocks even if a validator goes
+down. That engineering is ours, built after the open-core split, and it stays private —
+same "protocol is open, the intelligence layered on top is proprietary" rule this document
+already applies to `entropa-agents`.
 
 Each open crate's `Cargo.toml` `license` field should read `"MIT"`. `entropa-agents/Cargo.toml` should read
 `"UNLICENSED"` (proprietary, all rights reserved) before the public GitHub push.
