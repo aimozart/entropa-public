@@ -46,7 +46,7 @@ mod blocks;
 mod epochs;
 mod receipts;
 
-pub use blocks::{load_legacy_flat_chain, save_block};
+pub use blocks::{load_legacy_flat_chain, load_recent_blocks, save_block};
 pub use epochs::{
     get_current_epoch, get_epoch_info, load_chain, new_epoch_id, reconstruct_chain,
     set_current_epoch, set_epoch_parent, EpochRecord, EpochRecordMeta,

@@ -29,6 +29,16 @@ use entropa_node::{Node, Validator};
 /// has to be applied here independently rather than copied.
 const IN_MEMORY_WINDOW: usize = 20_000;
 
+/// Same defensive pattern as the private build's `ROUND_WATCHDOG_SECS`/`TICK_LOG_SECS`
+/// (`entropa-chain/crates/api/src/round.rs`) — a real incident there found a
+/// validator's production loop could go completely silent (no crash, no log output)
+/// while `/api/health` stayed green. This demo loop's per-iteration work is already
+/// more tightly timeout-bounded (no peer-network/quorum calls), so the risk is lower,
+/// but the same "silent forever" blind spot is possible in principle — applied here
+/// independently since main.rs isn't mirrored between the two repos.
+const ROUND_WATCHDOG_SECS: u64 = 90;
+const TICK_LOG_SECS: u64 = 30;
+
 fn now() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -161,31 +171,30 @@ async fn main() {
     tokio::spawn(async move {
         let active_epoch = active_epoch;
         let mut round = round;
+        let mut last_tick_log = tokio::time::Instant::now() - Duration::from_secs(TICK_LOG_SECS);
         loop {
-            // Fetch the live entropy beacon (drand's public quicknet) once for this
-            // round and inject it before the sync is_proposer/try_produce pair runs,
-            // so both see the identical value — falls back to the deterministic stub
-            // if drand is unreachable.
-            let live_beacon = entropa_core::beacon::sample_live().await;
-            let produced_block = {
-                let mut n = ticker.lock().unwrap();
-                let tx = demo_decision(round, n.mempool.len());
-                n.submit(tx);
-                n.live_beacon = live_beacon;
-                let block = n.try_produce(round, now());
-                // Re-bound immediately after producing, inside the same lock as the
-                // append, so RAM stays flat continuously rather than only at resume.
-                n.chain = std::mem::take(&mut n.chain).bound_to_window(IN_MEMORY_WINDOW);
-                block
-            };
-            if let Some(block) = produced_block {
-                persistence::save_block(&active_epoch, &block).await;
-                for tx in &block.transactions {
-                    persistence::save_receipt_index(&tx.content_hash(), &active_epoch, block.index)
-                        .await;
+            if last_tick_log.elapsed() >= Duration::from_secs(TICK_LOG_SECS) {
+                let height = ticker.lock().unwrap().chain.height();
+                println!("💓 demo node alive — height {height}, round {round}");
+                last_tick_log = tokio::time::Instant::now();
+            }
+
+            let round_result = tokio::time::timeout(
+                Duration::from_secs(ROUND_WATCHDOG_SECS),
+                run_one_round(&ticker, &active_epoch, round),
+            )
+            .await;
+
+            match round_result {
+                Ok(()) => round += 1,
+                Err(_) => {
+                    eprintln!(
+                        "⚠️ WATCHDOG: round exceeded {ROUND_WATCHDOG_SECS}s without \
+                         completing — exiting so Cloud Run restarts this instance"
+                    );
+                    std::process::exit(1);
                 }
             }
-            round += 1;
             tokio::time::sleep(Duration::from_secs(3)).await;
         }
     });
@@ -195,4 +204,31 @@ async fn main() {
         .expect("bind :8080");
     println!("🌌 Scryon live at http://localhost:8080  —  Entropa · Proof of Entropy · ML-DSA (FIPS-204)");
     axum::serve(listener, app(state)).await.expect("serve");
+}
+
+/// One round's work — extracted so it can be wrapped in a watchdog timeout (see
+/// `ROUND_WATCHDOG_SECS`). Not independently unit-tested: real I/O (Firestore), same
+/// posture as `persistence.rs`'s own async functions.
+async fn run_one_round(ticker: &Arc<std::sync::Mutex<Node>>, active_epoch: &str, round: u64) {
+    // Fetch the live entropy beacon (drand's public quicknet) once for this round and
+    // inject it before the sync is_proposer/try_produce pair runs, so both see the
+    // identical value — falls back to the deterministic stub if drand is unreachable.
+    let live_beacon = entropa_core::beacon::sample_live().await;
+    let produced_block = {
+        let mut n = ticker.lock().unwrap();
+        let tx = demo_decision(round, n.mempool.len());
+        n.submit(tx);
+        n.live_beacon = live_beacon;
+        let block = n.try_produce(round, now());
+        // Re-bound immediately after producing, inside the same lock as the append,
+        // so RAM stays flat continuously rather than only at resume.
+        n.chain = std::mem::take(&mut n.chain).bound_to_window(IN_MEMORY_WINDOW);
+        block
+    };
+    if let Some(block) = produced_block {
+        persistence::save_block(active_epoch, &block).await;
+        for tx in &block.transactions {
+            persistence::save_receipt_index(&tx.content_hash(), active_epoch, block.index).await;
+        }
+    }
 }

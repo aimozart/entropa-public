@@ -58,9 +58,9 @@ pub struct AppState {
     pub(crate) rate_buckets: Arc<Mutex<HashMap<String, RateBucket>>>,
     /// The epoch this process is currently writing new blocks under (see
     /// `persistence.rs`'s module doc) — `None` in tests/local runs where no
-    /// persistence is wired up. Lets read routes (`/api/chain`, receipts, the
-    /// partner dashboard) start a Firestore lineage walk from the right place when
-    /// a requested block has aged out of the in-memory window.
+    /// persistence is wired up. Lets read routes (`/api/chain`, receipts) start a
+    /// Firestore lineage walk from the right place when a requested block has aged
+    /// out of the in-memory window.
     pub active_epoch: Option<Arc<str>>,
 }
 

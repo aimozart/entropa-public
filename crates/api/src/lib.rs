@@ -19,8 +19,6 @@
 //! - `POST /api/tx`      — submit a transaction into the mempool
 //! - `GET  /block/:index` — a single block's own static page (JS off safe, never
 //!   disturbed by the explorer's live refresh)
-//! - `GET  /dashboard/:partner` — a public dashboard of one partner's attestations,
-//!   each linking to its independently-verifiable Attestation Receipt
 //! - `GET  /flow`         — a readable feed of the Probe's decisions
 //! - `GET  /glossary`     — plain-English definitions of every term this product uses
 //! - `GET  /robots.txt`, `/sitemap.xml`, `/llms.txt` — crawler/AI-result discoverability
@@ -79,10 +77,6 @@ pub fn app(state: AppState) -> Router {
             get(|| asset("image/png", FAVICON_512)),
         )
         .route("/block/{index}", get(routes::blocks::block_page))
-        .route(
-            "/dashboard/{partner}",
-            get(routes::dashboard::dashboard_page),
-        )
         .route("/flow", get(|| async { Html(FLOW_HTML) }))
         .route("/hire", get(|| async { Html(HIRE_HTML) }))
         .route("/resume", get(|| async { Html(RESUME_HTML) }))

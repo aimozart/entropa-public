@@ -120,6 +120,54 @@ fn recover_returns_empty_chain_when_genesis_itself_is_bad() {
     assert!(recovered.is_empty());
 }
 
+// --- Phase 4g: windowed recovery, so resume doesn't have to read/validate the
+// entire history — the real fix for a found production issue: at height
+// ~176,712, a full O(height) resume read+validate exceeded Cloud Run's startup
+// probe timeout. `recover_longest_valid_prefix_from` trusts a caller-supplied
+// floor (index, hash) the same way `bound_to_window` already trusts one for the
+// in-memory case, so resume only ever needs to fetch/validate the most recent
+// window, not the whole chain.
+
+#[test]
+fn recovers_a_windowed_prefix_starting_from_a_trusted_floor() {
+    let chain = long_valid_chain(10); // heights 0..9
+    let windowed = chain.clone().bound_to_window(3); // holds indices 7,8,9
+    let recovered = Chain::recover_longest_valid_prefix_from(
+        windowed.blocks.clone(),
+        windowed.base_index,
+        windowed.base_hash.clone(),
+    );
+    assert_eq!(recovered.height(), chain.height());
+    let recovered_hashes: Vec<&str> = recovered.blocks.iter().map(|b| b.hash.as_str()).collect();
+    let windowed_hashes: Vec<&str> = windowed.blocks.iter().map(|b| b.hash.as_str()).collect();
+    assert_eq!(recovered_hashes, windowed_hashes);
+    assert_eq!(recovered.verify(), Ok(()));
+}
+
+#[test]
+fn windowed_recovery_detects_a_gap_within_the_window() {
+    let chain = long_valid_chain(10);
+    let windowed = chain.bound_to_window(3); // indices 7,8,9
+    let mut blocks = windowed.blocks.clone();
+    blocks.remove(1); // index 8 never made it to storage
+    let recovered =
+        Chain::recover_longest_valid_prefix_from(blocks, windowed.base_index, windowed.base_hash);
+    // Index 9 can't attach without index 8 present, so only index 7 survives.
+    assert_eq!(recovered.height(), windowed.base_index + 1);
+    assert_eq!(recovered.verify(), Ok(()));
+}
+
+#[test]
+fn windowed_recovery_at_a_zero_floor_matches_the_original_genesis_behavior() {
+    // base_index=0 must behave identically to the pre-existing function - this
+    // is the backward-compatibility case recover_longest_valid_prefix delegates to.
+    let (chain, _, _) = sample_chain();
+    let recovered =
+        Chain::recover_longest_valid_prefix_from(chain.blocks.clone(), 0, String::new());
+    assert_eq!(recovered.len(), 3);
+    assert_eq!(recovered.verify(), Ok(()));
+}
+
 /// Builds a long, fully valid chain — the scale this needs to hold up at is
 /// tens of thousands of blocks in production, not three.
 fn long_valid_chain(n: usize) -> Chain {
