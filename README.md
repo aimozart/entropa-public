@@ -234,9 +234,10 @@ under real, sustained production traffic.
 
 **The public website and the validator consensus process were the same binary since day one — and
 nobody caught it, including the assistant that wrote most of this code, across dozens of sessions.**
-It took a direct, plain question — "why does a validator serve the website?" — to surface an
-architectural coupling that had been sitting in this project's own diagrams the whole time. Full,
-unsparing account, including exactly who caught it and how, in
+It took aimozart, this project's own founder, asking one direct, plain question — "why does a
+validator serve the website?" — to surface an architectural coupling that had been sitting in
+this project's own diagrams the whole time, missed by every review this project ran on itself.
+Full, unsparing account, including exactly who caught it and how, in
 [`OBSERVABILITY.md`](OBSERVABILITY.md#known-failure-modes-prevent-recurrence-dont-just-fix-and-forget).
 
 **A real bug shipped, a real visitor hit it, and it was fixed and deployed the same night it was
