@@ -2,6 +2,10 @@
 
 *How the live network is watched, and what it does on its own before a human ever gets paged.*
 
+**Truth. Transparency. Trust.** This document exists because of that mission statement, not
+despite it — real incidents, including our own mistakes and a real dispute with a review tool over
+its own wrong findings, are recorded below in full, not summarized away.
+
 Entropa runs as a single Cloud Run service with an AI Probe making real decisions on a timer. Small footprint,
 but it's live, unattended, and calling an external model — worth being deliberate about what happens when
 something breaks.
