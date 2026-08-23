@@ -1,7 +1,7 @@
 //! The receipt index (`receipts/{content_hash} -> {epoch, block_index}`) and the
 //! evicted-block fallback lookups built on top of it — what lets `GET
-//! /api/receipt/{id}`, `/api/chain` pagination, and the partner dashboard keep
-//! working for history that `Chain::bound_to_window` has evicted from RAM.
+//! /api/receipt/{id}` and `/api/chain` pagination keep working for history that
+//! `Chain::bound_to_window` has evicted from RAM.
 
 use entropa_core::Block;
 use serde_json::{json, Value};
@@ -116,8 +116,7 @@ pub async fn load_block(epoch: &str, block_index: u64) -> Option<Block> {
 /// lives under an ancestor epoch's own `blocks` collection, not the current one.
 /// Bounded by the lineage depth (the number of rotations ever recorded), not the
 /// chain's height — cheap for the rare deep-history read this exists for
-/// (`/api/chain` pagination and the partner dashboard below the in-memory
-/// window's floor).
+/// (`/api/chain` pagination below the in-memory window's floor).
 pub async fn load_block_in_lineage(epoch: &str, block_index: u64) -> Option<Block> {
     let mut cursor = epoch.to_string();
     let mut visited = std::collections::HashSet::new();

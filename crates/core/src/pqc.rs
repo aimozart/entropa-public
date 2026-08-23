@@ -47,6 +47,26 @@ impl Probe {
         let sig: Signature<MlDsa65> = self.signing.sign(msg);
         hex::encode(sig.encode())
     }
+
+    /// Reconstruct the exact Probe a prior [`Probe::signing_key_hex`] export came
+    /// from. Needed so a validator's identity survives process restarts/redeploys —
+    /// generate once, store the hex string as a secret, load it every boot instead
+    /// of calling [`Probe::spawn`]. `None` on any decode failure, including the
+    /// wrong byte length — never panics on bad input.
+    pub fn from_signing_key_hex(hex_seed: &str) -> Option<Self> {
+        let bytes = hex::decode(hex_seed).ok()?;
+        let seed_bytes: [u8; 32] = bytes.try_into().ok()?;
+        Some(Self {
+            signing: SigningKey::<MlDsa65>::from_seed(&seed_bytes.into()),
+        })
+    }
+
+    /// Hex-encoded 32-byte seed that reconstructs this exact Probe via
+    /// [`Probe::from_signing_key_hex`]. This is key material — treat it like a
+    /// password (store as a secret, never log it).
+    pub fn signing_key_hex(&self) -> String {
+        hex::encode(&self.signing.as_seed()[..])
+    }
 }
 
 /// Derive a Probe's short fingerprint from its hex public key.
@@ -104,11 +124,76 @@ mod tests {
         assert!(!verify_hex(&b.pubkey_hex(), b"hello", &sig));
     }
 
+    /// Load-bearing for the planned VRF-style selection proof (see
+    /// docs/plans — "Real Quorum Consensus"): a signature can only double as a
+    /// deterministic selection input if signing itself is deterministic. This
+    /// test is the single source of truth for that fact — don't assume either
+    /// way, and don't build selection logic on top of this until it's green.
+    #[test]
+    fn sign_hex_determinism_check() {
+        let probe = Probe::spawn();
+        let msg = b"COSMIC-round-determinism-check";
+        let sig1 = probe.sign_hex(msg);
+        let sig2 = probe.sign_hex(msg);
+        println!(
+            "sign_hex determinism: {}",
+            if sig1 == sig2 {
+                "DETERMINISTIC"
+            } else {
+                "RANDOMIZED/HEDGED"
+            }
+        );
+        // Intentionally no assertion on equality — this test exists to observe and
+        // report the fact, not to enforce an assumption about it.
+        assert!(verify_hex(&probe.pubkey_hex(), msg, &sig1));
+        assert!(verify_hex(&probe.pubkey_hex(), msg, &sig2));
+    }
+
     #[test]
     fn id_is_stable_and_prefixed() {
         let probe = Probe::spawn();
         assert_eq!(probe.id(), probe.id());
         assert!(probe.id().starts_with("PROBE-"));
         assert_eq!(probe.id().len(), "PROBE-".len() + 8);
+    }
+
+    // --- Phase 4a: persisted identity ---
+    //
+    // `Probe::spawn()` alone means a validator's identity changes on every process
+    // restart — harmless for a single-validator network, but fatal for N=3 quorum,
+    // where the other 2 validators' configured pubkeys go stale on every redeploy of
+    // the third. A key exported once and handed to Cloud Run as a secret must
+    // reconstruct the exact same signing identity every time.
+
+    #[test]
+    fn exported_key_reconstructs_the_same_identity() {
+        let original = Probe::spawn();
+        let exported = original.signing_key_hex();
+        let restored = Probe::from_signing_key_hex(&exported).expect("valid exported key");
+        assert_eq!(original.id(), restored.id());
+        assert_eq!(original.pubkey_hex(), restored.pubkey_hex());
+    }
+
+    #[test]
+    fn restored_probe_signs_identically_to_the_original() {
+        // sign_hex is confirmed deterministic (sign_hex_determinism_check) - the
+        // restored key must therefore produce byte-for-byte the same signature as
+        // the original for the same message, not just a signature that happens to
+        // verify.
+        let original = Probe::spawn();
+        let restored = Probe::from_signing_key_hex(&original.signing_key_hex()).unwrap();
+        let msg = b"round 42 beacon value";
+        assert_eq!(original.sign_hex(msg), restored.sign_hex(msg));
+    }
+
+    #[test]
+    fn malformed_hex_is_rejected() {
+        assert!(Probe::from_signing_key_hex("not-hex-at-all").is_none());
+    }
+
+    #[test]
+    fn wrong_length_key_is_rejected() {
+        // A valid hex string, but not the required 32 raw bytes.
+        assert!(Probe::from_signing_key_hex("aabbcc").is_none());
     }
 }

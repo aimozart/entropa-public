@@ -251,11 +251,32 @@ impl Chain {
     /// anywhere in tens of thousands discarded the *entire* chain back to zero on
     /// resume. Now a gap costs only the blocks after it, not the real history
     /// before it.
-    pub fn recover_longest_valid_prefix(mut blocks: Vec<Block>) -> Chain {
+    pub fn recover_longest_valid_prefix(blocks: Vec<Block>) -> Chain {
+        Self::recover_longest_valid_prefix_from(blocks, 0, String::new())
+    }
+
+    /// Same recovery as [`Chain::recover_longest_valid_prefix`], but starting from
+    /// a caller-supplied floor instead of always assuming genesis — the same trust
+    /// boundary [`Chain::bound_to_window`] already uses for the in-memory case
+    /// (this project treats Firestore as the durable source of truth for
+    /// everything below `base_index`), extended to resume: a caller can fetch and
+    /// validate just the most recent `window` blocks, not the entire history,
+    /// bounding resume time/reads to O(window) instead of O(full height). This is
+    /// the fix for a real production incident: at height ~176,712 a full-history
+    /// resume exceeded Cloud Run's startup probe timeout.
+    pub fn recover_longest_valid_prefix_from(
+        mut blocks: Vec<Block>,
+        base_index: u64,
+        base_hash: String,
+    ) -> Chain {
         blocks.sort_by_key(|b| b.index);
-        let mut chain = Chain::default();
+        let mut chain = Chain {
+            blocks: Vec::new(),
+            base_index,
+            base_hash,
+        };
         for block in blocks {
-            let expected = chain.blocks.len() as u64;
+            let expected = chain.height();
             if block.index < expected {
                 // A stale duplicate of an index we've already accepted (e.g. a
                 // retried write that landed twice) — not a gap, just skip it.

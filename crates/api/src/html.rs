@@ -1,4 +1,4 @@
-//! Shared HTML helpers for the server-rendered pages (`/block/:index`, `/dashboard/:partner`).
+//! Shared HTML helpers for the server-rendered pages (`/block/:index`).
 
 /// Minimal HTML-escaping for any field that could carry user-submitted content
 /// (transactions come in via `POST /api/tx`).
