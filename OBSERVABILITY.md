@@ -71,6 +71,45 @@ actually investigated (see the mailbox-routing note above) — the alert *worked
 root cause vs. just clearing the noise. This table is the forcing function for the next incident: land a row
 here, not just a fix.
 
+## Working with automated review (Paxel), 2026-08-23
+
+Same night as the incidents above, this project went through a real back-and-forth review cycle
+with [Paxel](https://paxel.ycombinator.com), YC's builder-report tool. Documenting both sides
+honestly: what its first pass got wrong, what got fixed for real in response, and a confirmed bug
+in its own analysis — transparency cuts both ways, on our code and on the tools reviewing it.
+
+**Confirmed remediation, built and shipped the same session:**
+- **API/Firebase contract tests** (`crates/api/tests/firebase_contract.rs`) — the boundary between
+  the Rust validator API and the newly-separated Firebase-hosted website had zero coverage; now
+  pins the JSON shape of `/api/receipt/:id` and `/block/:index`, plus CORS behavior, via `insta`
+  snapshots with random crypto fields redacted.
+- **Deploy/rollback/migration script harness** (`scripts/lib/gcloud-runner.sh` + 3 `.bats` suites,
+  25 tests) — real ad hoc `gcloud` invocations extracted into tested scripts with required-env
+  validation, dry-run mode, and revision/service-existence safety checks against a fake `gcloud`.
+- **Leader-lease lifecycle tests** — the actual acquire/renew/expiry/stale-owner-rejection logic
+  behind this project's single-writer safety guarantee had zero coverage (only URL construction
+  was tested); now has real trait-based seams (`LeaseStore`/`Clock`) and 8 integration tests
+  exercising the exact production code path via a fake store/clock.
+
+Two things were *not* built even under an explicit push to close every named item, and that's
+recorded here deliberately: a CORS test asserting unknown origins are rejected (the real policy is
+permissive to all origins — a test asserting rejection would encode a false claim about the
+system) and an `IMAGE`-based deploy path (this project deploys via `--source=.`, not a pre-built
+image tag — adding an unused required variable to match a wrong assumption would be dead weight).
+
+**A confirmed bug in Paxel's own test-file discovery, not just our usual blind-spot list:**
+after building all of the above, a rerun still reported "7 test files" — identical to a report run
+*before* 6 brand-new test files were added. Commit/line-count totals *did* change between the two
+runs, ruling out a full stale cache; the bug is specifically in test-file discovery. Direct grep for
+real test code (`#[test]`, `#[tokio::test]`, bats shebangs) found 34 files, not 7 — most likely
+because the scanner excludes standard Rust integration-test layout (`crates/*/tests/*.rs`) and
+shell-based operational tests (`scripts/tests/*.bats`) entirely. Paxel's own follow-up confirmed
+this reading. Full technical detail in `ANALYSIS_NOTES.md § 5`.
+
+**The one finding from that review kept without caveat**: a dedicated simplification pass. This
+session was almost entirely additive (new tests, new scripts, new trait seams) — the honest next
+step isn't more safety net, it's coming back and removing what's now obsolete.
+
 ## Watching it yourself
 
 ```
