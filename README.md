@@ -210,6 +210,14 @@ instead of quietly edited away. That's not a caveat on the pitch. It's the actua
 architecture works, because a system that's never been tested by a real failure hasn't proven
 anything yet.
 
+This isn't a new habit picked up for one project. aimozart's IT career started in 2012 — see the
+[full résumé](https://entropa.space/resume) for the real employer history — working the kind of
+customer-facing infrastructure and support roles where a wrong answer isn't a code review comment,
+it's a real customer's real outage. That's the same discipline running through every incident
+below: show the evidence, own the mistake, fix it in public, move on. Building Entropa hasn't
+changed that habit. It's just given it a system whose entire job is proving it, cryptographically,
+instead of asking anyone to take it on faith.
+
 **The chain got corrupted, twice, before it got a real safety mechanism.** Early on, Cloud Run's
 own deploy mechanics (draining traffic to an old revision while a new one starts) let two
 instances write blocks to the same storage at the same time — real chain corruption, twice, before
