@@ -70,3 +70,36 @@ manual interrogation: deploy verification scripts, soak acceptance criteria, `Ch
 checks, attestation persistence checks, receipt survival across redeploy/rollback, and
 scanner-backed security gates — stating acceptance criteria before non-trivial work and pasting
 proof after, not just judgment calls made from memory.
+
+**Update, 2026-08-23**: this section's own suggestions are now largely built —
+`scripts/deploy-entropa-scryon.sh`/`rollback-entropa-scryon.sh`/`migrate-epoch-firestore.sh` (real
+deploy/rollback/migration scripts, tested with `bats` against a fake `gcloud`), a real
+API/Firebase contract test suite (`crates/api/tests/firebase_contract.rs`), and leader-lease
+lifecycle tests (`crates/api/tests/leader_lease_lifecycle.rs`). The one item from this section that
+remains genuinely open, confirmed by a fresh Paxel pass the same day these shipped: **a dedicated
+simplification pass** — the codebase is still almost entirely additive (a low deletion ratio),
+which tracks with a hardening-focused session, but the next pass should explicitly target removing
+obsolete paths, not just adding more safety net on top.
+
+## 5. Test-file discovery has a real scope-of-scan bug (confirmed via Paxel, 2026-08-23)
+
+Distinct from § 2's co-location undercount, a live back-and-forth with Paxel confirmed a second,
+different test-discovery bug: its file-count metric reported **"7 test files"** identically across
+two report runs — one before and one after adding 6 brand-new test files this session
+(`crates/api/tests/firebase_contract.rs`, `leader_lease_lifecycle.rs`, `support/mod.rs`,
+`support/leader.rs`, plus 3 `.bats` files under `scripts/tests/`). The commit/line-count totals
+*did* update between the two runs, ruling out a fully stale cache — the bug is specifically in
+test-file discovery, not the whole scan.
+
+**Confirmed via direct grep, not assumed:**
+```bash
+grep -RIl '#\[test\]\|#\[tokio::test\]\|#!/usr/bin/env bats' crates scripts --include='*.rs' --include='*.bats'
+```
+found **34 files** with real test code — not 7. The most likely excluded categories, per Paxel's
+own follow-up analysis: `crates/*/tests/*.rs` (standard Rust integration-test layout — the most
+damaging miss, since this is not an edge case), `crates/*/tests/support/*.rs`, and
+`scripts/tests/*.bats` (operational/shell tests, a different category from Rust `#[test]` entirely).
+
+**Review rule**: don't trust a Paxel (or any automated reviewer's) raw test-file count for this
+repo. Use the grep command above, or `cargo test --workspace` (206 tests as of 2026-08-23) plus
+`bats scripts/tests/*.bats` (25 tests) for the real, current numbers.
