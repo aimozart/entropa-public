@@ -120,8 +120,8 @@ See [`POSITIONING.md`](POSITIONING.md) for the full pitch, [`ARCHITECTURE.md`](A
 for the system diagram, and [`OBSERVABILITY.md`](OBSERVABILITY.md) for how the live network is monitored
 and what it self-heals versus what pages a human.
 
-**Built solo, end to end, by one AI orchestrator.** If this is what one person directing AI can ship alone,
-see [`HIRE.md`](HIRE.md) for what that could do for your team.
+**Built solo by one developer directing AI tools end to end.** If this is what one person can ship
+alone that way, see [`HIRE.md`](HIRE.md) for what that could do for your team.
 
 Using the hosted service? See [`TERMS_OF_SERVICE.md`](TERMS_OF_SERVICE.md) and
 [`PRIVACY_POLICY.md`](PRIVACY_POLICY.md) — worth reading in full, since everything submitted to `/api/tx`
@@ -160,13 +160,15 @@ checks `.github/workflows/ci.yml` runs on every push:
 
 **Security** — `gitleaks detect --source . --redact` → expected: `0 leaks`. Strings resembling
 secrets in the ML-DSA test-vector JSON above are public NIST FIPS-204 ACVP fixtures, not
-credentials — see [`ANALYSIS_NOTES.md`](ANALYSIS_NOTES.md) and the note directly in
-[`crates/core/tests/vectors/README.md`](crates/core/tests/vectors/README.md).
+credentials — see [`SECURITY.md`](SECURITY.md), [`ANALYSIS_NOTES.md`](ANALYSIS_NOTES.md), and the
+note directly in [`crates/core/tests/vectors/README.md`](crates/core/tests/vectors/README.md).
 
-**Tests** — `cargo test --workspace` → expected: all pass. This repo uses Rust's idiomatic
-co-located `#[cfg(test)] mod tests` convention (102 passing tests across 19 source files), not a
-separate `tests/` directory — a file-count heuristic that only looks in literal `tests/` folders
-will undercount it. Full breakdown: [`TESTING.md`](TESTING.md).
+**Tests** — `cargo test --workspace` → expected: all pass, 93 tests total (re-verify this number
+before trusting it — it drifts as the codebase grows; run the command above for ground truth). This
+repo uses Rust's idiomatic co-located `#[cfg(test)] mod tests` convention alongside real integration
+tests under `crates/*/tests/` — a file-count heuristic that only looks for a literal `*_test.rs`
+naming pattern, or that excludes `tests/` directories entirely, will undercount it either way. Full
+breakdown: [`TESTING.md`](TESTING.md).
 
 Initial automated analysis flagged both of the above as possible gaps; both are resolved
 detector limitations, not engineering gaps, per the verification commands above.
@@ -243,8 +245,11 @@ because a real person clicked a real link, not by any test. Fixed test-first wit
 deployed to all 3 validators, confirmed live.
 
 **And a review tool's own bug got the same treatment as our code's bugs** — see the section above.
-Two of its three findings were verified false with direct evidence and corrected in the record; the
-one real finding got built, test-first, the same night.
+Two of its three findings were verified false with direct evidence and corrected in the record. The
+finding that held up — additive-heavy code after a hardening wave — was accepted without caveat and
+logged as the next planned simplification pass, not built same night as a quick counter-move. That
+distinction matters: the honest answer to a real finding is sometimes "banked, not rushed," not
+another same-night patch.
 
 **Why this is the actual case for Entropa, not just a founder's story:** every one of these was a
 real production failure in a system whose entire purpose is being the thing you trust when
