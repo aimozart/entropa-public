@@ -3,12 +3,15 @@
 > **If aimozart can compose and orchestrate this, imagine what he can do for your business.**
 
 Entropa was built solo, end to end, by one AI orchestrator working under the handle **aimozart** — real
-post-quantum cryptography, a live consensus network, a production AI agent, CI/CD, monitoring, hardening.
-Nobody else touched it. It exists to prove exactly one thing: what one person directing AI at a senior bar
-can ship alone.
+post-quantum cryptography, a real multi-validator consensus network (built, proven, then deliberately
+retired once load-testing and honest architecture review showed a simpler design was more production-ready),
+real load-testing at simulated scale, CI/CD, monitoring, hardening. Nobody else touched it. It exists to
+prove exactly one thing: what one person directing AI at a senior bar can ship alone — including the
+judgment to simplify a working system once the evidence says to, not just add complexity.
 
 **Live proof, not just a claim:** [entropa.space](https://entropa.space) · [Scryon explorer](https://scryon.entropa.space)
-· [the live Probe feed](https://scryon.entropa.space/flow) — watch an AI agent act and get hashed, in real time.
+· [the full architecture and honesty log](https://github.com/aimozart/entropa-public/blob/main/OBSERVABILITY.md) —
+real incidents, real load-test numbers, real bugs found and fixed, nothing scrubbed.
 
 ## What "orchestrate" actually means
 
