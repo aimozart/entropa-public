@@ -1,5 +1,17 @@
 # Entropa — Open-Core License Split
 
+## ⚠️ Status note (2026-08-26)
+
+**The table below is historically accurate but incomplete for the current product.**
+Entropa's production system has moved to a private, 100% proprietary architecture (a
+Merkle transparency log with elastic ingestion, replacing the N=3 quorum layer described
+below) — real load-testing found the new design is genuinely more stable and efficient,
+not just cheaper to run. That means the open/proprietary split described here still
+holds in spirit (crypto primitives open, the real product logic proprietary), but the
+specific proprietary component has changed. This repo continues to receive positioning
+and direction updates, not new production source. Full story:
+[`OBSERVABILITY.md`](OBSERVABILITY.md#why-the-production-architecture-changed-twice-in-one-week-2026-08-2526--the-full-story).
+
 **Rule of thumb: the protocol and crypto are open; the AI that drives it is proprietary.**
 
 | Crate / asset | License | Why |

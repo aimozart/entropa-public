@@ -1,5 +1,22 @@
 # Entropa — Positioning
 
+## ⚠️ Status note (2026-08-26)
+
+**This document describes the open-core demo in this repository (Proof of Entropy, N=3
+quorum consensus) — not Entropa's current production system.** The production
+audit-trail system moved to a private, 100% proprietary architecture: a Merkle
+transparency log with elastic, queue-fronted ingestion. That change wasn't just a cost
+or simplicity trade — real load-testing (10,000 simulated concurrent customers) and the
+bugs it found and fixed showed the new architecture is genuinely more stable, more
+efficient, and closer to production-ready than the multi-validator consensus attempt
+this document was originally written to pitch. See
+[`OBSERVABILITY.md`](OBSERVABILITY.md#why-the-production-architecture-changed-twice-in-one-week-2026-08-2526--the-full-story)
+for the full, evidence-based account. This repo keeps receiving positioning/direction
+updates like this one; it no longer receives the production source code itself. The
+pitch below is historically accurate for what this repo demonstrates and largely still
+true in spirit (post-quantum, AI-agent audit trails, no token) — just not a description
+of the live product's current mechanism.
+
 > **Entropa is a post-quantum trust layer for AI agents.** Written entirely in Rust.
 > It is not a currency and has no mining — it is verifiable infrastructure you use like an API.
 

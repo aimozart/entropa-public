@@ -29,22 +29,33 @@ found and fixed the same night, and a confirmed bug in the report's own tooling.
 
 ---
 
-## Project status (2026-08-26)
+## ⚠️ Project status (2026-08-26) — read this before anything else below
 
-The crates in this repo (`entropa-core`, `entropa-node`) are real, working, MIT-licensed
-post-quantum cryptography and consensus primitives — they remain valid and maintained as-is, and
-the demo you can clone and run below still works exactly as described.
+**The production system is now 100% proprietary. This repository is a stable, maintained
+snapshot of the original open-core primitives — it is no longer where Entropa's product
+code is developed.** Concretely, what that means going forward:
 
-Further development on Entropa's production audit-trail system has moved to a private,
-proprietary architecture (a Merkle transparency log replacing the N=3 quorum consensus shown
-here — the production system found real, unresolved race conditions in multi-validator BFT-style
-consensus that a single-operator, permissioned ledger never actually needed to solve). That work
-is not being open-sourced — it represents real competitive differentiation, the same reasoning
-already applied to the AI decision-making brain (`entropa-agents`, never public in the first
-place). Since then, the production system was also deliberately load-tested at real scale
-(simulating up to 10,000 concurrent customers), which found and fixed two genuine bugs and led to
-an elastic, queue-fronted ingestion architecture — full story, including the real numbers, in
-[`OBSERVABILITY.md`](OBSERVABILITY.md#why-the-production-architecture-changed-twice-in-one-week-2026-08-2526--the-full-story).
+- **The crates here (`entropa-core`, `entropa-node`) are real and still work** — real
+  post-quantum cryptography and consensus primitives, MIT-licensed, and the demo below
+  still runs exactly as described. They will keep receiving maintenance (dependency bumps,
+  bug fixes to what's here) but are not where new product features are being built.
+- **This repo will keep being updated — just not with new production source code.**
+  Expect positioning, architecture-narrative, and direction updates (like this one, and
+  the `OBSERVABILITY.md` section linked below) as the product evolves. What you won't see
+  here anymore is the actual code behind whatever Entropa is running in production at any
+  given time — that ships privately.
+- **Why**: the production audit-trail system moved to a private architecture (a Merkle
+  transparency log, replacing the N=3 quorum consensus this repo's `entropa-node` still
+  demonstrates — that consensus design solved a multi-validator trust problem a
+  single-operator, permissioned ledger never actually had). It was then load-tested at
+  real scale (10,000 simulated concurrent customers), which found and fixed two genuine
+  bugs and led to a further, still-private elastic ingestion architecture. Full story,
+  including the real numbers, in
+  [`OBSERVABILITY.md`](OBSERVABILITY.md#why-the-production-architecture-changed-twice-in-one-week-2026-08-2526--the-full-story).
+- **Everything below this notice** (the tagline, the PoE/consensus description, the
+  architecture walkthrough) describes **this repo's own open-core demo**, which is real
+  and still runs — it does not describe what Entropa's live product runs today. Treat it
+  as an accurate description of the snapshot you can clone, not a claim about production.
 
 ---
 

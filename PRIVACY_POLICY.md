@@ -48,9 +48,8 @@ locally, before it ever reaches us.
 Entropa's core product is a **public, append-only ledger**. Every hash and every piece of metadata you
 submit via `/api/tx` is immediately and permanently visible to anyone, via:
 - The Scryon block explorer (`scryon.entropa.space`)
-- The live Probe feed (`/flow`)
 - The public JSON API (`/api/chain`, `/api/head`)
-- Individual block detail pages (`/block/:index`)
+- Individual record detail pages (`/block/:index`)
 
 There is no private tier, no way to delete a submitted record, and no way to make a record visible only to
 you. This is by design — an attestation that could be quietly edited or hidden after the fact would defeat
