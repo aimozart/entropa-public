@@ -41,7 +41,10 @@ here — the production system found real, unresolved race conditions in multi-v
 consensus that a single-operator, permissioned ledger never actually needed to solve). That work
 is not being open-sourced — it represents real competitive differentiation, the same reasoning
 already applied to the AI decision-making brain (`entropa-agents`, never public in the first
-place). See [`OBSERVABILITY.md`](OBSERVABILITY.md) for the honest incident history that led here.
+place). Since then, the production system was also deliberately load-tested at real scale
+(simulating up to 10,000 concurrent customers), which found and fixed two genuine bugs and led to
+an elastic, queue-fronted ingestion architecture — full story, including the real numbers, in
+[`OBSERVABILITY.md`](OBSERVABILITY.md#why-the-production-architecture-changed-twice-in-one-week-2026-08-2526--the-full-story).
 
 ---
 
