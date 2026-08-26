@@ -27,8 +27,7 @@ submit is public and permanent" (see Section 3). Read that part carefully.
   actively profile or aggregate this beyond what's needed to run and debug the Service.
 
 **From your submissions to `POST /api/tx`:**
-- The hash you submit
-- Whatever you put in the `kind` and `payload` metadata fields
+- The `payload` you submit (typically a hash)
 - Your authenticated partner identity (from your API key, not something you can set yourself)
 
 We do **not** receive the raw data behind your hash. That's the entire design point — you compute the hash
@@ -45,20 +44,21 @@ locally, before it ever reaches us.
 ## 3. Everything you submit is public and permanent — this is not a typical "privacy" concern, but it's the
 ## most important thing in this document
 
-Entropa's core product is a **public, append-only ledger**. Every hash and every piece of metadata you
-submit via `/api/tx` is immediately and permanently visible to anyone, via:
-- The Scryon block explorer (`scryon.entropa.space`)
-- The public JSON API (`/api/chain`, `/api/head`)
+Entropa's core product is a **public, append-only Merkle transparency log**. Submission is asynchronous —
+your `POST /api/tx` gets a `202 Accepted` and a tracking ID immediately, and the payload is queued and
+sequenced shortly after — but once sequenced, it is permanently visible to anyone, via:
+- The Scryon explorer (`scryon.entropa.space`)
+- The public JSON API (`/api/chain`, `/api/receipt/{index}`)
 - Individual record detail pages (`/block/:index`)
 
 There is no private tier, no way to delete a submitted record, and no way to make a record visible only to
 you. This is by design — an attestation that could be quietly edited or hidden after the fact would defeat
 the entire purpose of the Service.
 
-**Practical implication:** the hash itself is safe to be public (a hash reveals nothing about the original
-data, assuming you're hashing something with enough entropy that it can't be brute-forced/guessed). But any
-plaintext you put in `kind` or `payload` is genuinely, permanently public. Don't put anything there you
-wouldn't want visible to anyone, forever.
+**Practical implication:** a properly-computed hash is safe to be public (it reveals nothing about the
+original data, assuming you're hashing something with enough entropy that it can't be brute-forced/guessed).
+But whatever you put in `payload` is genuinely, permanently public, whatever it is. Don't put anything there
+you wouldn't want visible to anyone, forever.
 
 ## 4. How we use what we collect
 
@@ -69,13 +69,13 @@ wouldn't want visible to anyone, forever.
 We do not sell your data. We do not share your onboarding/contact information with third parties except:
 - **Stripe**, for billing (necessary to process payment)
 - **Google Cloud Platform**, as our infrastructure provider (hosting, logging, the underlying Firestore
-  database that stores the public ledger itself)
+  database that stores the public transparency log itself)
 - If required by law (a valid legal process such as a subpoena)
 
 ## 5. Data retention
 
-- **Ledger data** (hashes and metadata submitted via `/api/tx`): retained permanently. This is inherent to
-  the product — see Section 3.
+- **Log data** (payloads submitted via `/api/tx`, and their signed checkpoints): retained permanently. This
+  is inherent to the product — see Section 3.
 - **Billing/account data**: retained for as long as you're an active partner, plus whatever period is
   required for our own tax/accounting recordkeeping obligations, after which it's deleted upon request where
   legally permitted.
@@ -85,16 +85,17 @@ We do not sell your data. We do not share your onboarding/contact information wi
 ## 6. Your rights
 
 Depending on your jurisdiction, you may have rights to access, correct, or request deletion of the personal
-data we hold about you (your name, contact info, billing relationship — **not** ledger data, which cannot be
+data we hold about you (your name, contact info, billing relationship — **not** log data, which cannot be
 altered or deleted per Section 3, and which by design contains no personal data unless you chose to put some
 in a `payload` field, which we'd strongly advise against). To exercise these rights over your account/contact
 data, email **aimozart@entropa.space**.
 
 ## 7. Security
 
-Submissions are transmitted over HTTPS/TLS. Write access is gated by per-partner API keys. The ledger itself
-is cryptographically signed (ML-DSA / NIST FIPS-204, post-quantum) and hash-chained, so tampering with
-historical records is detectable. See `OBSERVABILITY.md` for how the live system is monitored.
+Submissions are transmitted over HTTPS/TLS. Write access is gated by per-partner API keys. The log itself is
+a cryptographically signed (ML-DSA / NIST FIPS-204, post-quantum) Merkle transparency log, so tampering with
+historical records is detectable — see [`VERIFICATION.md`](VERIFICATION.md) for how anyone can check this
+independently. See `OBSERVABILITY.md` for how the live system is monitored.
 
 No system is perfectly secure, and as a young, small-scale service we don't carry the same operational
 maturity as an established enterprise vendor. Factor that into what you choose to submit.
