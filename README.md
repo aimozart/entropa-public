@@ -81,6 +81,10 @@ Deterministic agentic architecture: the AI is probabilistic, the ledger is not. 
 follows a fixed pipeline — decide → validate → post-quantum sign → append — so the result is always
 a replayable, non-repudiable record, however the model reasoned to get there.
 
+**"Independently verifiable" is not a slogan — see [`VERIFICATION.md`](VERIFICATION.md)** for the
+exact algorithm and real, tested code (run against a live production receipt) to check a receipt
+yourself, with zero trust in Entropa's own servers or claims.
+
 ## We get reviewed too — including our reviewer's own bugs
 
 **[Read the full public builder report →](https://paxel.ycombinator.com/results/mga6btfa)**
