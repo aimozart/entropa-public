@@ -29,6 +29,22 @@ found and fixed the same night, and a confirmed bug in the report's own tooling.
 
 ---
 
+## Project status (2026-08-26)
+
+The crates in this repo (`entropa-core`, `entropa-node`) are real, working, MIT-licensed
+post-quantum cryptography and consensus primitives — they remain valid and maintained as-is, and
+the demo you can clone and run below still works exactly as described.
+
+Further development on Entropa's production audit-trail system has moved to a private,
+proprietary architecture (a Merkle transparency log replacing the N=3 quorum consensus shown
+here — the production system found real, unresolved race conditions in multi-validator BFT-style
+consensus that a single-operator, permissioned ledger never actually needed to solve). That work
+is not being open-sourced — it represents real competitive differentiation, the same reasoning
+already applied to the AI decision-making brain (`entropa-agents`, never public in the first
+place). See [`OBSERVABILITY.md`](OBSERVABILITY.md) for the honest incident history that led here.
+
+---
+
 ## What this is
 
 Entropa is a **post-quantum trust layer for AI agents** — not a currency. There's no mining, no
