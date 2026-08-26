@@ -17,14 +17,17 @@ these Terms are updated to reflect it.
 
 ## 2. What the Service does
 
-Entropa is a metered API that accepts a **hash** you submit (`POST /api/tx`), and returns a tamper-evident,
-post-quantum-signed (ML-DSA / NIST FIPS-204) record of that hash's existence at a specific time, appended to
-an append-only, publicly verifiable ledger (the **Scryon** explorer).
+Entropa is a metered API that accepts a **hash** you submit (`POST /api/tx`, as your submission's `payload`).
+Submission is **asynchronous**: the Service returns a `202 Accepted` response with a tracking ID immediately,
+then queues and appends your hash to a tamper-evident, post-quantum-signed (ML-DSA / NIST FIPS-204) **Merkle
+transparency log**. Once sequenced, your record's receipt — a Merkle inclusion proof plus a signed checkpoint
+— is fetchable and independently verifiable by anyone, without needing to trust Entropa's own claims about it
+(see [`VERIFICATION.md`](VERIFICATION.md) for exactly how). Records are also viewable via the **Scryon**
+explorer (`scryon.entropa.space`) and the public JSON API (`/api/chain`, `/api/receipt/{index}`).
 
 Entropa does **not** receive, store, or process the underlying data behind your hash. You are responsible for
-computing the hash yourself, before submission. We only ever see and store the hash string itself, plus
-whatever metadata you choose to submit alongside it (`kind`, `payload` fields) — see Section 5 and the
-Privacy Policy for what that means for you.
+computing the hash yourself, before submission. We only ever see and store the payload string itself — see
+Section 5 and the Privacy Policy for what that means for you.
 
 ## 3. Accounts and API keys
 
@@ -45,16 +48,16 @@ the record is immutable and cannot be un-created.
 
 ## 5. Everything you submit becomes a permanent, public record
 
-**This is the most important thing to understand before using Entropa.** Every hash and every piece of
-metadata (`from`, `kind`, `payload`) you submit is written to a public, append-only ledger and is visible to
-anyone via the Scryon explorer (`scryon.entropa.space`) and the public JSON API (`/api/chain`). There is no
-"private" attestation tier. There is no deletion — the entire design point of the Service is that records
-cannot be altered or removed after the fact.
+**This is the most important thing to understand before using Entropa.** Whatever you submit as your `payload`
+is written to a public, append-only Merkle transparency log and is visible to anyone via the Scryon explorer
+(`scryon.entropa.space`) and the public JSON API (`/api/chain`). There is no "private" attestation tier. There
+is no deletion — the entire design point of the Service is that records cannot be altered or removed after the
+fact.
 
-**Do not submit anything in the `kind`/`payload` fields that you would not want to be permanently, publicly
-visible.** The hash itself reveals nothing about your underlying data (that's the point), but any plaintext
-metadata you choose to attach alongside it is public forever. This is your responsibility, not ours — we
-have no way to know what you intend a submitted string to mean or contain.
+**Do not submit anything as your `payload` that you would not want to be permanently, publicly visible.** A
+properly-computed hash reveals nothing about your underlying data (that's the point), but the payload string
+itself is public forever, whatever you put in it. This is your responsibility, not ours — we have no way to
+know what you intend a submitted string to mean or contain.
 
 ## 6. Acceptable use
 
@@ -62,9 +65,9 @@ You may not use the Service to:
 - Submit metadata containing another person's private information without their consent
 - Submit content that is unlawful, defamatory, or that facilitates fraud
 - Attempt to disrupt, overload, or circumvent the Service's rate limits or authentication
-- Misrepresent the `from` identity on submissions in a way not already authenticated by your API key (note:
-  the Service itself already prevents this — your key's assigned name always overrides whatever `from` value
-  you send, see `ARCHITECTURE.md`)
+- Attempt to submit under another partner's identity — the Service already prevents this structurally: every
+  submission's identity comes from the API key that authenticated it, never from anything you can set
+  yourself in the request body
 
 We reserve the right to revoke API key access for violation of these terms.
 
@@ -90,15 +93,19 @@ established enterprise vendor — factor that into any decision to depend on it 
 We aim to keep the Service running continuously, but do not guarantee any specific uptime or SLA at this
 stage. We may modify, suspend, or discontinue the Service, in whole or in part, with reasonable notice where
 practical. If the Service is discontinued, previously-recorded attestations remain independently verifiable
-by anyone holding the relevant block data and public key — that's the nature of a cryptographically signed,
-publicly replicable ledger — but the hosted API and explorer may no longer be available.
+by anyone holding the relevant receipt (record, inclusion proof, and signed checkpoint) and the signer's
+public key — that's the nature of a cryptographically signed, independently verifiable transparency log —
+but the hosted API and explorer may no longer be available.
 
 ## 9. Intellectual property
 
-The core protocol, cryptography, and explorer source (`entropa-core`, `entropa-node`, the Scryon explorer)
-are open-source under the MIT License — see the public repository. The AI decision-making logic
-(`entropa-agents`) and this hosted service are proprietary. Nothing in these Terms grants you rights to
-Entropa's trademarks, branding, or proprietary source beyond what the MIT-licensed portions already permit.
+Earlier versions of Entropa published two open-source Rust crates under the MIT License — `entropa-core` and
+`entropa-node` (see the public repository and crates.io). Those crates remain published and MIT-licensed as
+stable historical artifacts, but are no longer under active development and are not part of the system that
+actually runs the Service today. The current production architecture — the Merkle transparency log, its
+ingest/sequencing infrastructure, and the Scryon explorer as currently deployed — is closed-source and
+proprietary. Nothing in these Terms grants you rights to Entropa's trademarks, branding, or proprietary
+source beyond what the previously-published MIT-licensed crates already permit.
 
 ## 10. Termination
 
