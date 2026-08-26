@@ -169,6 +169,67 @@ scrutiny when the scrutiny is convenient isn't rigorous, it's performing rigor. 
 is that verifiable correction, in public, on both our mistakes and a review tool's, is worth more
 than a clean-looking score.
 
+## Why the production architecture changed twice in one week, 2026-08-25/26 — the full story
+
+Two real, sequential architecture changes happened to the production audit-trail system
+in quick succession. Neither is open-sourced (the same reasoning as `entropa-agents`
+never being public: this is the actual product, not the open-core demo), but the
+reasoning behind both — and the real evidence that drove each — is told here in full,
+because "why we changed direction" is exactly the kind of thing a vendor asking you to
+trust their audit trail should never hide.
+
+**Change 1: N=3 quorum consensus → a Merkle transparency log.** The production system
+had briefly run real, working, cryptographically-proven multi-validator quorum consensus
+(3 independent validators, VRF-based leaderless fallback election, genuine 2-of-3+
+agreement — see the incident table above for real bugs found and fixed in it). Once it
+was live and battle-tested, an honest question got asked: what problem does multi-party
+consensus actually solve, and does this project have it? Quorum consensus exists to
+protect against *one validator among several independent operators* acting maliciously
+or disagreeing. Every validator in this deployment was run by the same operator. There
+was no multi-party trust problem to solve — only the cost and failure surface of
+building as if there were (three services to run, keep in sync, and debug; real
+incidents in this table came directly from that complexity). Replaced with a **Merkle
+transparency log** — the same append-only, publicly-verifiable design Certificate
+Transparency uses to keep TLS certificate issuance auditable. A single writer appends
+each submission, periodically signs a checkpoint over the tree's root, and hands back an
+inclusion proof any customer can verify independently, without trusting this project's
+server code at all. Simpler, cheaper, and — critically — no less trustworthy for the
+actual threat model this project has, because the tamper-evidence property customers
+actually rely on (can't quietly rewrite history) comes from the Merkle structure itself,
+not from having multiple validators watch each other.
+
+**Change 2: load-testing at real scale, and what it found.** Before treating the new
+system as ready for real customers, it was deliberately hammered — not with a uniform
+burst, but by simulating 100, then 1,000, then 10,000 distinct companies submitting at
+realistic, heterogeneous volumes (a few heavy users, many light ones, matching what a
+real customer base actually looks like). This surfaced two genuine problems, not
+hypothetical ones:
+1. At 10,000 simulated companies, roughly 15% of submissions were hard-rejected once
+   concurrent load exceeded the deployment's default admission-control ceiling — a real
+   customer's audit-trail submission could have been silently bounced during a traffic
+   spike.
+2. Separately, and found via a real screenshot during the same testing, the explorer
+   briefly showed "no records" and then jumped in height — not a display bug, but a real
+   correctness gap in how a freshly-appended record was proven against a checkpoint that
+   hadn't caught up yet.
+
+**Both were fixed, and the second one properly, not just patched**: the checkpoint logic
+was corrected so a proof against an older, still-valid checkpoint works forever (the
+actual guarantee a transparency log is supposed to provide), and the write path was
+re-architected so that accepting a submission (which needs to scale to many concurrent
+customers) is decoupled from sequencing it into the log in order (which stays a single,
+simple writer — deliberately not re-introducing the quorum complexity Change 1 just
+removed). **The concrete customer benefit**: a traffic burst that would previously have
+been hard-rejected now gets accepted immediately and processed a little later instead —
+confirmed for real, not just argued for, when an earlier test's burst of tens of
+thousands of submissions was absorbed durably and kept draining correctly for minutes
+afterward, with zero data loss. A delayed audit record beats a silently dropped one.
+
+Neither the transparency-log internals nor the queue architecture are open-sourced. The
+reasoning, the real numbers, and the real bugs found along the way are — because a
+company whose whole pitch is "prove what happened, don't just assert it" should hold its
+own architecture decisions to the same standard.
+
 ## Watching it yourself
 
 ```
