@@ -1,9 +1,17 @@
 # Entropa — Architecture
 
-*"AI probes reach post-quantum consensus, seeded by a public randomness beacon."*
+*A signed, append-only Merkle transparency log — every record independently verifiable,
+post-quantum secure.*
 100% Rust · headless · data-minimal · no token.
 
 ## System
+
+**Updated 2026-08-26.** The crates in this repo are real, working, MIT-licensed
+open-core primitives (see `README.md` § Project status) — they are not, however, a
+complete picture of the current production system, which moved to a private,
+proprietary architecture. The diagram below shows the real current shape at the level
+this repo can honestly show it: what's a public crate here is labeled as such; what's
+proprietary is labeled as a black box, not hidden or pretended away.
 
 ```mermaid
 flowchart TB
@@ -11,63 +19,65 @@ flowchart TB
     Agents["AI Agents / partner systems"]
   end
 
-  Agents -->|"POST /api/tx { from, kind, payload }<br/>bearer API key · payload is caller-chosen, typically a hash"| API
+  Agents -->|"POST /api/tx { payload }<br/>bearer API key"| INGEST
 
-  subgraph GCP["GCP · headless · scale-to-zero"]
-    API["entropa-api<br/>axum gateway · Cloud Run"]
-    subgraph NODE["entropa-node"]
-      Mempool["Mempool"] --> PoE["Proof of Entropy<br/>(drand-beacon consensus)"]
-    end
-    PROBES["entropa-agents<br/>Proposer Probe<br/>(Gemini on Vertex AI · deterministic envelope)"]
-    CORE["entropa-core<br/>ML-DSA (FIPS-204) + blake3 chain"]
-    STORE[("Firestore<br/>chain state")]
+  subgraph PROD["Production write path — proprietary, not in this repo"]
+    INGEST["Elastic ingest tier<br/>stateless, scales with traffic"]
+    QUEUE[("Durable queue")]
+    SEQ["Single-writer sequencer"]
+    LOG["Merkle transparency log<br/>append + signed checkpoints"]
 
-    API --> NODE
-    PROBES --> NODE
-    NODE --> CORE
-    NODE --> STORE
+    INGEST --> QUEUE --> SEQ --> LOG
   end
 
-  Beacon["Public randomness beacon (drand)"] --> PoE
+  LOG -->|built on| CORE["entropa-core (this repo)<br/>ML-DSA (FIPS-204) + blake3 primitives"]
+  SEQ --> STORE[("Firestore")]
 
   subgraph SITE["Firebase Hosting · static, zero crypto deps"]
-    Scryon["entropa.space landing page<br/>Scryon explorer + /flow"]
+    Scryon["entropa.space landing page<br/>Scryon explorer"]
   end
-  Scryon -->|"fetch() — read-only, CORS"| API
+  Scryon -->|"fetch() — read-only, CORS"| SEQ
 ```
 
-**Corrected 2026-08-23** — until this date, the box above labeled `Scryon` was not a
-separate service: it was routes baked into the *same Cloud Run binary* as `API`, routed by
-HTTP `Host` header, meaning the validator's consensus process and the public marketing
-site were literally one deployable unit. This was a real architectural mistake present
-since the project's first deploy, not a simplification made for this diagram — see
+**Why a queue sits between accepting a submission and writing it**: the log itself is a
+single writer by design — one correct, strictly-ordered structure, no multi-party
+consensus needed, since there's only ever one operator. That's what keeps the whole
+system simple and cheap. But a single writer alone can't elastically absorb a real
+traffic burst from many customers at once. The ingest tier is genuinely elastic (Cloud
+Run, scales with demand); the queue lets it accept a submission immediately even if the
+single-writer sequencer is momentarily behind — a delayed record, never a dropped one.
+Full story, including the real load-testing that found this mattered:
+[`OBSERVABILITY.md`](OBSERVABILITY.md#why-the-production-architecture-changed-twice-in-one-week-2026-08-2526--the-full-story).
+
+**Historical note, corrected 2026-08-23**: the public website and the production
+write path used to be deployed as *literally the same process*, routed by HTTP `Host`
+header — a real architectural mistake present since this project's first deploy. See
 `OBSERVABILITY.md` § Known failure modes, 2026-08-12 → 2026-08-23 row, for the honest
-account of how long it went unnoticed and what it cost. The diagram above reflects the
-corrected, separated topology; the row in `OBSERVABILITY.md` is the record that it wasn't
-always this way.
+account. Fixed the same day; the diagram above reflects the corrected, separated
+topology, which has held through every architecture change since.
 
 ## The "prove it, don't trust me" flow
 
 ```mermaid
 sequenceDiagram
   participant C as Customer / AI Agent
-  participant E as Entropa API
-  participant L as Ledger (PoE)
-  C->>E: POST /api/tx { from, kind, payload }   %% payload is caller-chosen -- typically a hash
-  E->>L: Proposer Probe drafts block, PQC-signs it
-  L->>L: PoE picks proposer via drand's public randomness beacon
-  L-->>E: block appended (constellation grows)
-  Note over C,E: GET /api/chain (paginated) or GET /block/:index — verify any block, any time, no auth needed
+  participant I as Ingest tier
+  participant S as Sequencer
+  C->>I: POST /api/tx { payload }
+  I-->>C: 202 Accepted + tracking ID
+  I->>S: (via durable queue)
+  S->>S: append to Merkle log, sign checkpoint
+  Note over C,S: GET /api/receipt/:id — independently verifiable, no auth needed, once sequenced
 ```
 
 ## Crates (cargo workspace)
 
 | Crate | Role | Status |
 |---|---|---|
-| `entropa-core` | ML-DSA/FIPS-204 Probe identities, transactions, blocks, verifiable chain | ✅ 10 tests + 5 NIST KAT tests |
-| `entropa-node` | mempool + **Proof of Entropy** consensus | ✅ 5 tests |
-| `entropa-agents` | AI Probes — production `GeminiBrain` (Vertex AI) + offline `MockBrain`; `ClaudeBrain` ships too but is a local/offline build-time tool only, never deployed | ✅ 5 tests |
-| `entropa-api` | axum JSON gateway + **Scryon** explorer, per-key rate limiting | ✅ 12 tests |
+| `entropa-core` | ML-DSA/FIPS-204 Probe identities, transactions, blocks, verifiable chain — the cryptographic primitives the current production log is built on, real and still used | ✅ 10 tests + 5 NIST KAT tests |
+| `entropa-node` | mempool + **Proof of Entropy** consensus — real, working, but **not part of the current production architecture** (see `README.md` § Project status; kept here as a valid, maintained demo of the original consensus design) | ✅ 5 tests |
+| `entropa-agents` | AI Probes — production `GeminiBrain` (Vertex AI) + offline `MockBrain`. Also not part of the current production system — the current write path makes no AI-driven decisions at all | ✅ 5 tests |
+| `entropa-api` | axum JSON gateway + **Scryon** explorer, per-key rate limiting — this demo build's own self-contained API; the real production API is a different, private service (see § System above) | ✅ 12 tests |
 
 Product surface: **Scryon** (the explorer). No smart-contract DSL, no wallet — Entropa does one thing.
 
