@@ -25,7 +25,12 @@ production receipt before being written down here, not copied from memory.
 }
 ```
 
-- **`record`** — your original submission (hex-encoded).
+- **`record`** — your original submission (hex-encoded). **If you attached an optional
+  label**, `record` is `payload + 0x00 (a single NUL byte) + label`, not just the
+  payload alone — split on the first `0x00` byte to recover each half. This is
+  deliberate: it means a label is exactly as tamper-evident as the payload, folded
+  into the same leaf hash, and can never be silently changed or removed later without
+  invalidating the proof below.
 - **`proof`** — the sibling hashes needed to recompute the log's root from your record
   alone, without needing every other record in the log.
 - **`checkpoint`** — a signed statement of the entire log's state at the moment your
@@ -70,7 +75,19 @@ def verify_inclusion(record_hex: str, proof: list, expected_root_hex: str) -> bo
 
 Run this against your own receipt's `record`, `proof`, and `checkpoint.root`. If it
 returns `True`, your record is definitely part of the tree that root represents — full
-stop, no trust required. This is a real, working example — `pip install blake3`, drop
+stop, no trust required. This works identically whether or not you used a label —
+the whole `record` bytes (payload and label together, if present) are what's hashed.
+To recover your original payload and label separately afterward:
+
+```python
+def decode_record(record: bytes) -> tuple[bytes, bytes | None]:
+    if b"\x00" in record:
+        payload, label = record.split(b"\x00", 1)
+        return payload, label
+    return record, None
+```
+
+This is a real, working example — `pip install blake3`, drop
 in your receipt's fields, and it runs.
 
 ## Step 2 — verify the checkpoint signature (ML-DSA / FIPS-204)
