@@ -109,14 +109,79 @@ yourself (`kubectl create secret generic entropa-db-credentials
 --from-literal=password=<real-value>`) — it's deliberately not templated
 from a plaintext Helm value.
 
+## Live demo
+
+This is a portfolio/demo project — **zero real customers, no real billing**.
+The live system runs on GKE at `entropa.space`: a real Stripe **test-mode**
+checkout ($0, no real charge) unlocks a dashboard that starts real mock
+AI-agent decisions flowing through the actual ingest → Kafka →
+transparency-service → Postgres pipeline, so the architecture is visibly
+real and working without anyone needing to hand over real payment info or
+trust an unproven product.
+
 ## What's built vs. what's next
 
-**Built and verified**: all 6 services compile and pass their tests (real
+**Built and verified**: all 7 services compile and pass their tests (real
 hash-chain tamper-evidence logic, Kafka publish behavior), full Docker
-Compose stack including observability, Helm chart skeleton.
+Compose stack including observability, a real Helm chart, a live GKE
+deployment behind a Google-managed-SSL load balancer, Spring
+Security/OAuth2 (Keycloak-issued JWTs validated at the gateway on every
+route except the public demo/signup paths), Resilience4j circuit breakers
+wired into the gateway's routes to ingest-service and transparency-service,
+and a real Stripe test-mode signup flow feeding a live demo dashboard.
 
-**Not yet built**: Spring Security/OAuth2 (no auth on any endpoint yet —
-do not expose this publicly as-is), Resilience4j actually wired into
-inter-service calls (dependency is present, circuit breakers aren't applied
-to any real call path yet), a live GKE deployment, Grafana dashboards
-(datasources are provisioned, no dashboards built yet).
+**Not yet built**: Grafana dashboards (datasources are provisioned, no
+dashboards built yet), a real contact-form backend (the public site's
+contact page currently falls back to a `mailto:` link).
+
+## Real incidents found and fixed
+
+Kept here honestly, the same way the codebase itself is — every one of
+these was a real bug in a real deployment, found with actual evidence
+(logs, `curl`, `kubectl describe`), not a hypothetical.
+
+- **Kafka's `bitnami/kafka` image was removed from Docker Hub's free
+  tier** mid-project (a real 2025 industry change) — every pinned version
+  tag started returning `ImagePullBackOff`. Fixed by switching to
+  `bitnamilegacy/kafka`, Bitnami's actual free-tier replacement repo.
+- **`config-server`'s own Dockerfile never copied `config-repo/` into its
+  image** — every service was silently running on completely empty remote
+  configuration the whole time (confirmed via `propertySources: []` from
+  the config server's own API). Fixed by adding the missing `COPY` step.
+- **The default `file:///${CONFIG_REPO_PATH:../config-repo}` search-location
+  mis-parsed as an FTP hostname lookup** inside the container (`Caused by:
+  java.net.UnknownHostException: config-repo`, routed through
+  `sun.net.www.protocol.ftp`) — fixed with an explicit `file:/config-repo`
+  path instead of the fragile relative-path default.
+- **`config-server` bakes `config-repo/` into its Docker image at build
+  time — it is not live-reloaded.** Editing a config file and expecting
+  the running system to pick it up does nothing until `config-server`
+  itself is rebuilt and redeployed. Cost real debugging time more than
+  once before this was internalized.
+- **A trailing newline byte baked into a Kubernetes Secret** (created via
+  `echo` instead of `printf`) caused every Postgres authentication attempt
+  to fail — the password value and the actual database password matched
+  character-for-character except for that one invisible byte. Found via
+  `xxd` on the decoded secret value.
+- **Kafka requires `SASL_PLAINTEXT` authentication on its client listener**
+  (a Bitnami chart default), but none of the Spring services had any SASL
+  configuration at all — every produce/consume attempt looped forever on
+  `Node -1 disconnected` instead of a clear auth error. Fixed by wiring
+  real `security.protocol`/`sasl.mechanism`/`sasl.jaas.config` properties
+  from a Kubernetes Secret into every Kafka-connected service.
+- **Spring Cloud Gateway's route predicate `/api/signup/**` never matched
+  the bare `/api/signup` path** the frontend actually calls — a real
+  Spring `PathPattern` gotcha, not the older, more permissive
+  `AntPathMatcher` behavior some documentation still assumes. Fixed by
+  matching both the exact path and the wildcard.
+- **Spring Security blocked the CORS `OPTIONS` preflight request itself**,
+  before Spring Cloud Gateway's own `globalcors` filter ever got a chance
+  to run — real `403`s on every cross-origin browser call despite CORS
+  being correctly configured. Fixed by explicitly permitting `OPTIONS` on
+  every path in the security filter chain.
+- **JVM startup probes were tuned for an unconstrained environment** —
+  under this cluster's real CPU budgets, cold starts regularly took
+  90–125 seconds (once even climbing past a 300-second probe budget for a
+  JPA/Hibernate + Postgres service). Fixed with a proper Kubernetes
+  `startupProbe` sized to the real, measured cold-start time instead of a
+  guess.
