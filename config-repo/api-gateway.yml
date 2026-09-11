@@ -32,6 +32,10 @@ spring:
               args:
                 name: transparencyServiceCB
                 fallbackUri: forward:/fallback/transparency
+        - id: demo-traffic-generator
+          uri: lb://demo-traffic-generator
+          predicates:
+            - Path=/demo/**
 
 resilience4j:
   circuitbreaker:

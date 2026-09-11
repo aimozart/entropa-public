@@ -11,10 +11,10 @@ COPY transparency-service ./transparency-service
 COPY notification-service ./notification-service
 COPY demo-traffic-generator ./demo-traffic-generator
 RUN chmod +x gradlew
-RUN ./gradlew :ingest-service:bootJar --no-daemon --console=plain
+RUN ./gradlew :demo-traffic-generator:bootJar --no-daemon --console=plain
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /workspace/ingest-service/build/libs/*.jar app.jar
+COPY --from=build /workspace/demo-traffic-generator/build/libs/*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

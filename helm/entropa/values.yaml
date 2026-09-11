@@ -61,3 +61,8 @@ services:
     port: 8083
     replicas: 1
     healthPath: /actuator/health
+  demo-traffic-generator:
+    image: demo-traffic-generator
+    port: 8084
+    replicas: 1
+    healthPath: /actuator/health

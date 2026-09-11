@@ -9,6 +9,7 @@ COPY api-gateway ./api-gateway
 COPY ingest-service ./ingest-service
 COPY transparency-service ./transparency-service
 COPY notification-service ./notification-service
+COPY demo-traffic-generator ./demo-traffic-generator
 RUN chmod +x gradlew
 RUN ./gradlew :api-gateway:bootJar --no-daemon --console=plain
 

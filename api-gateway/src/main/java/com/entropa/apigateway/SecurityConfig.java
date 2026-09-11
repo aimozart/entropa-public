@@ -16,6 +16,12 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
  * spring.security.oauth2.resourceserver.jwt.issuer-uri — no manual bean
  * needed, and defining one by hand risks a subtly different validator
  * (e.g. a missing/duplicate issuer check) than the auto-configured default.
+ *
+ * /demo/** is deliberately public — it's a self-contained showcase (real
+ * pipeline, synthetic content, see demo-traffic-generator's own docs) meant
+ * for an unauthenticated visitor (e.g. a hiring manager) to click "Start
+ * Demo" with zero login. It never touches real customer data or the
+ * authenticated /api/** paths.
  */
 @Configuration
 @EnableWebFluxSecurity
@@ -26,7 +32,7 @@ public class SecurityConfig {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchange -> exchange
-                        .pathMatchers("/actuator/**", "/fallback/**").permitAll()
+                        .pathMatchers("/actuator/**", "/fallback/**", "/demo/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}))

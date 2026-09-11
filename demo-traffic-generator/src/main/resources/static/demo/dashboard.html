@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Entropa — Live Demo</title>
+<style>
+  :root { --bg:#0b0e17; --panel:#151a26; --border:#2a3142; --text:#d8dee9; --muted:#7c879e; --accent:#5fb3ff; --accent2:#7fe3b4; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
+  header { padding: 28px 24px 8px; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .banner { background: rgba(95,179,255,0.08); border: 1px solid rgba(95,179,255,0.3); border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-size: 13.5px; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; }
+  button { background: linear-gradient(135deg,#5fb3ff,#7fe3b4); border:none; border-radius:999px; padding:12px 22px; font-weight:700; font-size:14px; cursor:pointer; color:#04070f; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .status { margin: 14px 0; color: var(--muted); font-size: 13.5px; }
+  .entry { background: var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin-bottom:10px; animation: fadein 0.4s ease; }
+  @keyframes fadein { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
+  .entry .desc { font-size: 14.5px; margin-bottom: 8px; }
+  .entry .meta { font-size: 11.5px; color: var(--muted); font-family: "SF Mono", Consolas, monospace; word-break: break-all; }
+  .entry .meta b { color: var(--accent2); font-family: inherit; }
+  .empty { color: var(--muted); text-align:center; padding: 40px 0; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Entropa — Live Demo</h1>
+    <div class="sub">Watch simulated AI-agent decisions get committed to a real, tamper-evident hash chain — Kafka, Spring Boot microservices, and PostgreSQL running underneath, not a mockup.</div>
+    <div class="banner">
+      <b>What you're about to see is real, the content is not:</b> clicking
+      "Start Demo" triggers synthetic AI decision descriptions (fraud/KYC-style
+      examples) flowing through the actual ingest → Kafka → hash-chain →
+      persistence pipeline. Every hash below is a real SHA-256 computed over
+      the shown description and chained to the previous entry — exactly how
+      real customer submissions work, except no real customer data is
+      involved here.
+    </div>
+  </header>
+  <div class="wrap">
+    <button id="start-btn">Start Demo</button>
+    <div class="status" id="status"></div>
+    <div id="feed"></div>
+  </div>
+
+  <script>
+    const startBtn = document.getElementById('start-btn');
+    const statusEl = document.getElementById('status');
+    const feedEl = document.getElementById('feed');
+    let pollTimer = null;
+    let seenHashes = new Set();
+
+    async function startDemo() {
+      startBtn.disabled = true;
+      statusEl.textContent = 'Starting…';
+      const res = await fetch('/demo/session?count=20', { method: 'POST' });
+      const session = await res.json();
+      statusEl.textContent = `Demo running — session ${session.sessionId.slice(0,8)}…`;
+      pollFeed();
+      pollTimer = setInterval(pollFeed, 2500);
+    }
+
+    async function pollFeed() {
+      const res = await fetch('/demo/feed?limit=20');
+      const entries = await res.json();
+      if (entries.length === 0 && feedEl.children.length === 0) {
+        feedEl.innerHTML = '<div class="empty">Waiting for the first entry…</div>';
+        return;
+      }
+      entries.forEach(e => {
+        if (seenHashes.has(e.contentHash)) return;
+        seenHashes.add(e.contentHash);
+        const div = document.createElement('div');
+        div.className = 'entry';
+        div.innerHTML = `
+          <div class="desc">${escapeHtml(e.description)}</div>
+          <div class="meta"><b>hash:</b> ${e.contentHash}<br/><b>chain position:</b> ${e.leafIndex} &middot; <b>block hash:</b> ${e.blockHash.slice(0,16)}…</div>
+        `;
+        feedEl.prepend(div);
+      });
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    startBtn.addEventListener('click', startDemo);
+    pollFeed();
+  </script>
+</body>
+</html>
