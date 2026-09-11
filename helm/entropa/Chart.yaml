@@ -1,0 +1,10 @@
+apiVersion: v2
+name: entropa
+description: >
+  Entropa microservices — post-quantum-adjacent audit-trail log,
+  rebuilt as Java 21 / Spring Boot / Spring Cloud microservices on
+  Kubernetes. Config Server, Eureka discovery, Gateway routing,
+  event-driven ingest/transparency/notification services over Kafka.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

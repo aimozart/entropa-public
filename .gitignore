@@ -1,5 +1,7 @@
-/target
-**/*.rs.bk
+.gradle/
+build/
+*.class
+.idea/
+*.iml
+out/
 .env
-.DS_Store
-backup-push.log

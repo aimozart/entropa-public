@@ -1,0 +1,17 @@
+{{- range $name, $svc := .Values.services }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "entropa.labels" $ | nindent 4 }}
+spec:
+  type: {{ $svc.serviceType | default "ClusterIP" }}
+  selector:
+    {{- include "entropa.selectorLabels" (dict "serviceName" $name) | nindent 4 }}
+  ports:
+    - port: {{ $svc.servicePort | default $svc.port }}
+      targetPort: {{ $svc.port }}
+      protocol: TCP
+---
+{{- end }}

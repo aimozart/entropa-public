@@ -1,0 +1,59 @@
+server:
+  port: 8080
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak:8080/realms/entropa
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: ingest-service
+          uri: lb://ingest-service
+          predicates:
+            - Path=/api/tx/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: ingestServiceCB
+                fallbackUri: forward:/fallback/ingest
+        - id: transparency-service
+          uri: lb://transparency-service
+          predicates:
+            - Path=/api/chain/**,/api/receipt/**,/api/health
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: transparencyServiceCB
+                fallbackUri: forward:/fallback/transparency
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 15s
+        permittedNumberOfCallsInHalfOpenState: 3
+        registerHealthIndicator: true
+    instances:
+      ingestServiceCB:
+        baseConfig: default
+      transparencyServiceCB:
+        baseConfig: default
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 4s
+    instances:
+      ingestServiceCB:
+        baseConfig: default
+      transparencyServiceCB:
+        baseConfig: default
