@@ -23,6 +23,10 @@ spec:
           ports:
             - containerPort: {{ $svc.port }}
           env:
+            {{- if eq $name "config-server" }}
+            - name: SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS
+              value: "file:/config-repo"
+            {{- end }}
             {{- if ne $name "eureka-server" }}
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
               value: "http://eureka-server:8761/eureka/"
@@ -34,27 +38,48 @@ spec:
             {{- if or (eq $name "ingest-service") (eq $name "transparency-service") (eq $name "notification-service") }}
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
               value: {{ $.Values.kafka.bootstrapServers | quote }}
+            - name: SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL
+              value: "SASL_PLAINTEXT"
+            - name: SPRING_KAFKA_PROPERTIES_SASL_MECHANISM
+              value: "PLAIN"
+            - name: SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG
+              valueFrom:
+                secretKeyRef:
+                  name: entropa-kafka-sasl-jaas
+                  key: jaas-config
+            {{- end }}
+            {{- if eq $name "ingest-service" }}
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: entropa-stripe-test-key
+                  key: key
             {{- end }}
             {{- if eq $name "transparency-service" }}
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://{{ $.Values.postgres.host }}:{{ $.Values.postgres.port }}/{{ $.Values.postgres.database }}"
-            - name: DB_PASSWORD
+            - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: entropa-db-credentials
                   key: password
             {{- end }}
+          startupProbe:
+            httpGet:
+              path: {{ $svc.healthPath }}
+              port: {{ $svc.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 60
           readinessProbe:
             httpGet:
               path: {{ $svc.healthPath }}
               port: {{ $svc.port }}
-            initialDelaySeconds: 30
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: {{ $svc.healthPath }}
               port: {{ $svc.port }}
-            initialDelaySeconds: 45
             periodSeconds: 20
           resources:
             {{- toYaml $.Values.resources | nindent 12 }}

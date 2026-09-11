@@ -16,5 +16,6 @@ RUN ./gradlew :config-server:bootJar --no-daemon --console=plain
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /workspace/config-server/build/libs/*.jar app.jar
+COPY config-repo /config-repo
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

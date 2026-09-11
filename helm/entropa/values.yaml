@@ -2,15 +2,15 @@
 # Override per-environment with -f values-dev.yaml / -f values-prod.yaml.
 
 image:
-  registry: gcr.io/YOUR_GCP_PROJECT
+  registry: us-central1-docker.pkg.dev/entropa-testnet/entropa-microservices
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 kafka:
-  bootstrapServers: "entropa-kafka:9092"
+  bootstrapServers: "entropa-kafka.default.svc.cluster.local:9092"
 
 postgres:
-  host: "entropa-postgres"
+  host: "entropa-postgres-postgresql.default.svc.cluster.local"
   port: 5432
   database: entropa
 
