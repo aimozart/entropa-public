@@ -83,5 +83,17 @@ spec:
             periodSeconds: 20
           resources:
             {{- toYaml $.Values.resources | nindent 12 }}
+          {{- if eq $name "ingest-service" }}
+          volumeMounts:
+            - name: gmail-sa-key
+              mountPath: /secrets/gmail
+              readOnly: true
+          {{- end }}
+      {{- if eq $name "ingest-service" }}
+      volumes:
+        - name: gmail-sa-key
+          secret:
+            secretName: entropa-gmail-sa-key
+      {{- end }}
 ---
 {{- end }}
