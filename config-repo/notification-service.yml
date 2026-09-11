@@ -1,0 +1,18 @@
+server:
+  port: 8083
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: notification-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "com.entropa.*"
+        spring.json.type.mapping: "attestation-event:com.entropa.notificationservice.model.AttestationEvent"
+
+entropa:
+  ingest:
+    topic: entropa.attestations

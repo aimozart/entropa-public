@@ -1,0 +1,25 @@
+{
+  "realm": "entropa",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "entropa-service-client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "REPLACE-THIS-LOCAL-DEMO-VALUE-BEFORE-ANY-REAL-DEPLOYMENT",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": ["profile", "roles"]
+    }
+  ],
+  "roles": {
+    "client": {
+      "entropa-service-client": [
+        { "name": "attestation:write" },
+        { "name": "attestation:read" }
+      ]
+    }
+  }
+}

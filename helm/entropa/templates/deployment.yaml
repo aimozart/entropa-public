@@ -1,0 +1,62 @@
+{{- range $name, $svc := .Values.services }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "entropa.labels" $ | nindent 4 }}
+    {{- include "entropa.selectorLabels" (dict "serviceName" $name) | nindent 4 }}
+spec:
+  replicas: {{ $svc.replicas }}
+  selector:
+    matchLabels:
+      {{- include "entropa.selectorLabels" (dict "serviceName" $name) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "entropa.selectorLabels" (dict "serviceName" $name) | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ $name }}
+          image: "{{ $.Values.image.registry }}/{{ $svc.image }}:{{ $.Values.image.tag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ $svc.port }}
+          env:
+            {{- if ne $name "eureka-server" }}
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://eureka-server:8761/eureka/"
+            {{- end }}
+            {{- if and (ne $name "eureka-server") (ne $name "config-server") }}
+            - name: SPRING_CLOUD_CONFIG_URI
+              value: "http://config-server:8888"
+            {{- end }}
+            {{- if or (eq $name "ingest-service") (eq $name "transparency-service") (eq $name "notification-service") }}
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: {{ $.Values.kafka.bootstrapServers | quote }}
+            {{- end }}
+            {{- if eq $name "transparency-service" }}
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://{{ $.Values.postgres.host }}:{{ $.Values.postgres.port }}/{{ $.Values.postgres.database }}"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: entropa-db-credentials
+                  key: password
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: {{ $svc.healthPath }}
+              port: {{ $svc.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: {{ $svc.healthPath }}
+              port: {{ $svc.port }}
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          resources:
+            {{- toYaml $.Values.resources | nindent 12 }}
+---
+{{- end }}

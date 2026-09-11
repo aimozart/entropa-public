@@ -1,0 +1,63 @@
+# Default values for the entropa Helm chart.
+# Override per-environment with -f values-dev.yaml / -f values-prod.yaml.
+
+image:
+  registry: gcr.io/YOUR_GCP_PROJECT
+  tag: latest
+  pullPolicy: IfNotPresent
+
+kafka:
+  bootstrapServers: "entropa-kafka:9092"
+
+postgres:
+  host: "entropa-postgres"
+  port: 5432
+  database: entropa
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: false   # deliberately off by default — see README's cost note
+
+# One entry per microservice. The deployment/service templates range over
+# this map, so adding a new service means adding one entry here, not a new
+# pair of YAML files.
+services:
+  eureka-server:
+    image: eureka-server
+    port: 8761
+    replicas: 1
+    healthPath: /actuator/health
+  config-server:
+    image: config-server
+    port: 8888
+    replicas: 1
+    healthPath: /actuator/health
+  api-gateway:
+    image: api-gateway
+    port: 8080
+    replicas: 2
+    healthPath: /actuator/health
+    servicePort: 80
+    serviceType: LoadBalancer
+  ingest-service:
+    image: ingest-service
+    port: 8081
+    replicas: 2
+    healthPath: /actuator/health
+  transparency-service:
+    image: transparency-service
+    port: 8082
+    replicas: 1   # single-writer by design — do not scale this one horizontally
+    healthPath: /actuator/health
+  notification-service:
+    image: notification-service
+    port: 8083
+    replicas: 1
+    healthPath: /actuator/health

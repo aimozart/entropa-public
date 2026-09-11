@@ -1,0 +1,29 @@
+server:
+  port: 8082
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: transparency-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "com.entropa.*"
+        spring.json.type.mapping: "attestation-event:com.entropa.transparencyservice.model.AttestationEvent"
+  datasource:
+    url: jdbc:postgresql://localhost:5432/entropa
+    username: entropa
+    # password intentionally NOT set here — it's a secret, so it comes only
+    # from the SPRING_DATASOURCE_PASSWORD container env var (set in
+    # docker-compose.yml / the Helm chart's Secret), never through remote
+    # config, even as a ${PLACEHOLDER}.
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+entropa:
+  ingest:
+    topic: entropa.attestations
