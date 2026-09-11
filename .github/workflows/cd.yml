@@ -1,0 +1,88 @@
+name: CD
+
+# Real GitOps-style deploy pipeline: on every push to main, after CI has
+# already passed (build+test+secret-scan), build a fresh Docker image for
+# every service, push to Artifact Registry, then deploy to the live GKE
+# cluster via the same Helm chart used for every manual deploy this
+# project has ever done — same chart, same values, just automated.
+#
+# Auth: a dedicated, narrowly-scoped service account (entropa-gh-actions@
+# entropa-testnet.iam.gserviceaccount.com) with ONLY artifactregistry.writer
+# and container.developer — it cannot touch IAM, billing, or any other
+# GCP resource. Its key lives only as the encrypted GCP_SA_KEY repo secret,
+# never in source.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  build-and-push:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - config-server
+          - eureka-server
+          - api-gateway
+          - ingest-service
+          - transparency-service
+          - notification-service
+          - demo-traffic-generator
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      - name: Build and push ${{ matrix.service }}
+        run: |
+          docker build -f ${{ matrix.service }}/Dockerfile \
+            -t us-central1-docker.pkg.dev/entropa-testnet/entropa-microservices/${{ matrix.service }}:${{ github.sha }} \
+            -t us-central1-docker.pkg.dev/entropa-testnet/entropa-microservices/${{ matrix.service }}:latest \
+            .
+          docker push us-central1-docker.pkg.dev/entropa-testnet/entropa-microservices/${{ matrix.service }}:${{ github.sha }}
+          docker push us-central1-docker.pkg.dev/entropa-testnet/entropa-microservices/${{ matrix.service }}:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Install gke-gcloud-auth-plugin
+        run: gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: entropa-microservices
+          location: us-central1
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v5
+
+      - name: Roll out via Helm
+        run: |
+          helm upgrade entropa helm/entropa/ \
+            --set image.tag=${{ github.sha }} \
+            --wait --timeout 10m

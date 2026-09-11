@@ -9,6 +9,12 @@ spring:
           issuer-uri: http://keycloak:8080/realms/entropa
   cloud:
     gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
       discovery:
         locator:
           enabled: true
@@ -17,7 +23,7 @@ spring:
         - id: ingest-service
           uri: lb://ingest-service
           predicates:
-            - Path=/api/tx/**
+            - Path=/api/tx/**,/api/signup,/api/signup/**
           filters:
             - name: CircuitBreaker
               args:
