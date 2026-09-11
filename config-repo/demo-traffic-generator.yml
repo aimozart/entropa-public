@@ -1,0 +1,7 @@
+server:
+  port: 8084
+
+entropa:
+  demo:
+    ingest-service-url: http://ingest-service:8081
+    transparency-service-url: http://transparency-service:8082

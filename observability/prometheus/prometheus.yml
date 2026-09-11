@@ -31,3 +31,8 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['notification-service:8083']
+
+  - job_name: 'demo-traffic-generator'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['demo-traffic-generator:8084']
