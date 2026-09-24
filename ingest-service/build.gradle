@@ -7,7 +7,7 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
-    implementation 'com.stripe:stripe-java:29.1.0'
+    implementation 'com.stripe:stripe-java:33.4.2'
     implementation 'com.google.auth:google-auth-library-oauth2-http:1.48.0'
     implementation 'com.google.api-client:google-api-client:2.8.0'
     implementation 'com.google.apis:google-api-services-gmail:v1-rev20260525-2.0.0'
