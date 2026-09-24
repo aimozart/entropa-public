@@ -1,0 +1,37 @@
+name: CodeQL
+
+# Static application security testing (SAST) for the Java services:
+# CodeQL's security-extended query suite (injection, deserialization,
+# SSRF, crypto misuse, path traversal, ...). Findings appear under
+# Security -> Code scanning. Runs on every push/PR and weekly, so new
+# queries catch old code too.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "23 7 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: java-kotlin
+          build-mode: none
+          queries: security-extended
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:java-kotlin

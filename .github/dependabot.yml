@@ -1,0 +1,40 @@
+# Dependabot: keeps dependencies patched. Security updates (CVE fixes) are
+# also enabled in the repo settings and open PRs as soon as an advisory lands;
+# this file adds weekly version-update checks on top.
+# PRs run through the normal CI (build + tests + gitleaks + dependency review);
+# nothing deploys until a PR is reviewed and merged to main.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      spring:
+        patterns: ["org.springframework*"]
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directories:
+      - /api-gateway
+      - /config-server
+      - /eureka-server
+      - /ingest-service
+      - /notification-service
+      - /transparency-service
+      - /demo-traffic-generator
+    schedule:
+      interval: weekly
+    groups:
+      base-images:
+        patterns: ["*"]
