@@ -10,6 +10,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # Major versions are planned migrations (e.g. Spring Boot 3 -> 4), not
+      # weekly patches. Security updates still arrive for any version.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       spring:
         patterns: ["org.springframework*"]
@@ -35,6 +40,11 @@ updates:
       - /demo-traffic-generator
     schedule:
       interval: weekly
+    ignore:
+      # Major versions are planned migrations (e.g. Spring Boot 3 -> 4), not
+      # weekly patches. Security updates still arrive for any version.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       base-images:
         patterns: ["*"]
