@@ -56,13 +56,11 @@ spec:
                   key: key
             {{- end }}
             {{- if eq $name "transparency-service" }}
-            - name: SPRING_DATASOURCE_URL
-              value: "jdbc:postgresql://{{ $.Values.postgres.host }}:{{ $.Values.postgres.port }}/{{ $.Values.postgres.database }}"
-            - name: SPRING_DATASOURCE_PASSWORD
+            - name: SPRING_DATA_MONGODB_URI
               valueFrom:
                 secretKeyRef:
-                  name: entropa-db-credentials
-                  key: password
+                  name: entropa-mongodb
+                  key: uri            
             {{- end }}
           startupProbe:
             httpGet:
