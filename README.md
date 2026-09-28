@@ -185,3 +185,14 @@ these was a real bug in a real deployment, found with actual evidence
   JPA/Hibernate + Postgres service). Fixed with a proper Kubernetes
   `startupProbe` sized to the real, measured cold-start time instead of a
   guess.
+
+ ## MongodDB Migration completed 
+ "Storage: MongoDB Atlas": why, what changed (Part 1.2's table), the cutover plan (Part 5), the chain verification output, the explain() before and after, and the network limitation from 5a. Résumé line: migrated a live service's audit log from Postgres to MongoDB Atlas with zero event loss, provisioned with Pulumi.
+
+ ## Self-Checks
+Why did the new test compile but fail? @DataMongoTest only creates MongoDB repositories; ours was JPA.
+What happens without auto-index-creation? No unique indexes: duplicates get in, and the writer's "newest record" query scans everything.
+Why @Field("leaf_index") and not leafIndex? To match the exported data; the API still says leafIndex.
+Why pause the writer instead of copying live? Kafka holds new events while the writer is paused, so the copy is complete and nothing is lost.
+Why $numberLong? JSON has no 64-bit integer; without the tag it becomes a double.
+Where does the password live? Pulumi's encrypted config, and a Kubernetes Secret. Never a file in the repo.
