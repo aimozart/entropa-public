@@ -54,7 +54,7 @@
   submission.
 - **L4 — Docker networking: never hardcode `localhost` as another service's
   address.** Every cross-service URL (Config Server, Eureka, Keycloak,
-  Kafka, Postgres) must come from an environment variable with a
+  Kafka, MongoDB) must come from an environment variable with a
   `localhost`-defaulting fallback only for genuinely-standalone local runs
   outside Docker. `spring.config.import: optional:configserver:http://localhost:8888`
   hardcoded directly in the import string overrides
