@@ -186,13 +186,65 @@ these was a real bug in a real deployment, found with actual evidence
   `startupProbe` sized to the real, measured cold-start time instead of a
   guess.
 
- ## MongodDB Migration completed 
- "Storage: MongoDB Atlas": why, what changed (Part 1.2's table), the cutover plan (Part 5), the chain verification output, the explain() before and after, and the network limitation from 5a. Résumé line: migrated a live service's audit log from Postgres to MongoDB Atlas with zero event loss, provisioned with Pulumi.
+## MongodDB Migration completed 
+"Storage: MongoDB Atlas": why, what changed (Part 1.2's table), the cutover plan (Part 5), the chain verification output, the explain() before and after, and the network limitation from 5a. Résumé line: migrated a live service's audit log from Postgres to MongoDB Atlas with zero event loss, provisioned with Pulumi.
 
- ## Self-Checks
+## Self-Checks
 Why did the new test compile but fail? @DataMongoTest only creates MongoDB repositories; ours was JPA.
 What happens without auto-index-creation? No unique indexes: duplicates get in, and the writer's "newest record" query scans everything.
 Why @Field("leaf_index") and not leafIndex? To match the exported data; the API still says leafIndex.
 Why pause the writer instead of copying live? Kafka holds new events while the writer is paused, so the copy is complete and nothing is lost.
 Why $numberLong? JSON has no 64-bit integer; without the tag it becomes a double.
 Where does the password live? Pulumi's encrypted config, and a Kubernetes Secret. Never a file in the repo.
+
+## Verifications:
+Atlas atlas-k0y3zo-shard-0 [primary] entropa> const e1 = db.attestation_records.find({ tracktracking_id: t }).explain("executionStats")
+
+  Atlas atlas-k0y3zo-shard-0 [primary] entropa> e1.queryPlanner.winningPlan
+  {
+    isCached: false,
+    stage: 'EXPRESS_IXSCAN',
+    keyPattern: '{ tracking_id: 1 }',
+    indexName: 'tracking_id'
+  }
+  Atlas atlas-k0y3zo-shard-0 [primary] entropa> const e1 = db.attestation_records.find({ tracktracking_id: t }).explain("executionStats")
+  | e1.queryPlanner.winningPlan
+  | e1.executionStats.totalDocsExamined
+  1
+  Atlas atlas-k0y3zo-shard-0 [primary] entropa> e1.executionStats.totalDocsExamined
+  1
+  Atlas atlas-k0y3zo-shard-0 [primary] entropa> e2.queryPlanner.winningPlan
+  {
+    isCached: false,
+    stage: 'LIMIT',
+    limitAmount: 1,
+    inputStage: {
+      stage: 'FETCH',
+      inputStage: {
+        stage: 'IXSCAN',
+        keyPattern: { leaf_index: 1 },
+        indexName: 'leaf_index',
+        isMultiKey: false,
+        multiKeyPaths: { leaf_index: [] },
+        isUnique: true,
+        isSparse: false,
+        isPartial: false,
+        indexVersion: 2,
+        direction: 'backward',
+        indexBounds: { leaf_index: [ '[MaxKey, MinKey]' ] }
+      }
+    }
+  }
+  Atlas atlas-k0y3zo-shard-0 [primary] entropa> e2.executionStats.totalDocsExamined
+  1
+  Atlas atlas-k0y3zo-shard-0 [primary] entropa>
+
+### 
+### Receipt lookup (e1): EXPRESS_IXSCAN on tracking_id, 1 document examined.
+### - EXPRESS_IXSCAN is MongoDB 8's fast path: an exact match on a unique index, so it jumps ### straight to the one entry and skips the normal query planner.
+
+### Newest record (e2): LIMIT ← FETCH ← IXSCAN on leaf_index, 1 document examined. Read it from the inside out:
+### - IXSCAN, direction: 'backward': MongoDB walks the index from the highest leaf_index down. ### The index is already in order, so there's no SORT stage. No sorting 35 records in memory.
+### - indexBounds [MaxKey, MinKey]: in principle it would walk the whole range, top to bottom…
+### - LIMIT 1: …but it stops after the very first entry.
+### - FETCH: then it reads that one document.
