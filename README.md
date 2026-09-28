@@ -15,7 +15,7 @@ Client → api-gateway (Spring Cloud Gateway)
               │
               ├─→ ingest-service    → Kafka (entropa.attestations)
               │                            │
-              │                            ├─→ transparency-service → Postgres
+              │                            ├─→ transparency-service → MongoDB Atlas
               │                            └─→ notification-service
               │
    eureka-server (service discovery)
@@ -28,7 +28,7 @@ Client → api-gateway (Spring Cloud Gateway)
 - **transparency-service** — the single-writer sequencer. Consumes from
   Kafka, computes a real hash chain (each block commits to the previous
   block's hash + its own index + content hash — tampering with any record
-  breaks every later hash), persists via JPA/Postgres, serves
+  breaks every later hash), persists to MongoDB Atlas (Spring Data MongoDB), serves
   `GET /api/receipt/:trackingId` and `GET /api/chain`. Deliberately **not**
   horizontally scaled (replicas: 1 everywhere in this repo) — same
   single-writer-by-design tradeoff the original Rust system made, for the
@@ -115,7 +115,7 @@ This is a portfolio/demo project — **zero real customers, no real billing**.
 The live system runs on GKE at `entropa.space`: a real Stripe **test-mode**
 checkout ($0, no real charge) unlocks a dashboard that starts real mock
 AI-agent decisions flowing through the actual ingest → Kafka →
-transparency-service → Postgres pipeline, so the architecture is visibly
+transparency-service → MongoDB Atlas pipeline, so the architecture is visibly
 real and working without anyone needing to hand over real payment info or
 trust an unproven product.
 
@@ -185,3 +185,59 @@ these was a real bug in a real deployment, found with actual evidence
   JPA/Hibernate + Postgres service). Fixed with a proper Kubernetes
   `startupProbe` sized to the real, measured cold-start time instead of a
   guess.
+
+## Storage: MongoDB Atlas (migrated from Postgres, 2026-09-28)
+
+`transparency-service` stores the hash chain in **MongoDB Atlas** (M0, Google Cloud `us-central1`). The Atlas
+project, cluster, database user (`readWrite` on the `entropa` database only) and network allow list are
+provisioned with **Pulumi (TypeScript)**. The connection string reaches the pod only as `SPRING_DATA_MONGODB_URI`,
+read from a Kubernetes Secret; it is never in a file or in `config-repo`.
+
+**What changed.** One service. The hashing (`ChainHasher`), the single writer (`TransparencyLogService`), the
+controller and their existing tests are untouched: they depend on the repository interface, not the database.
+
+| | Before | After |
+|---|---|---|
+| Dependency | `spring-boot-starter-data-jpa` + PostgreSQL driver | `spring-boot-starter-data-mongodb` |
+| Record | `@Entity` row in table `attestation_records` | `@Document` in collection `attestation_records`; `@Field` names match the old columns |
+| Uniqueness | `UNIQUE` constraints | unique indexes on `leaf_index` and `tracking_id` (`auto-index-creation: true`) |
+| Repository | `JpaRepository<AttestationRecord, Long>` | `MongoRepository<AttestationRecord, String>` |
+| Tests | none for the repository | `AttestationRepositoryMongoTest` (4 tests), written first; CI runs a `mongo:8` service container |
+
+**Cutover with no lost events.**
+
+1. Scaled `transparency-service` to 0. The ingest service kept accepting decisions, and they waited in Kafka.
+2. Exported the now-frozen table as Extended JSON (`$numberLong`, `$date`), so 64-bit integers and dates keep their BSON types.
+3. Imported into Atlas with `mongoimport` and recomputed every block hash from scratch.
+4. Merged; CD deployed the new version. It rejoined the same Kafka consumer group and resumed from its committed offset.
+
+**Proof.**
+
+- Hash chain recomputed over every record, across the join between migrated and newly written records:
+  `35 records checked, 0 broken` (records 0–24 from Postgres, 25–34 written by the MongoDB version).
+- `explain("executionStats")` on Atlas for the two queries the service runs constantly:
+
+| Query | Winning plan | Docs examined |
+|---|---|---|
+| Receipt by `tracking_id` | `EXPRESS_IXSCAN` on `tracking_id` | 1 |
+| Newest record (the writer asks this on every append) | `LIMIT ← FETCH ← IXSCAN` on `leaf_index`, backward: no in-memory sort | 1 |
+
+Without the indexes, both queries were `COLLSCAN`s that examined every record (measured on a local copy), so each
+append would get slower as the chain grew. With them, the cost stays at one document.
+
+**Design notes.**
+
+- The new test failed first for the right reason: `@DataMongoTest` only builds MongoDB repositories, so the JPA
+  repository couldn't be injected.
+- Spring Boot 3 creates no indexes unless `spring.data.mongodb.auto-index-creation` is on; `@Indexed` alone does
+  nothing. Turning it off lets duplicate tracking IDs in, and a test catches that.
+- `@Field` keeps the stored field names identical to the old columns. The API's JSON comes from the getters, so it's
+  unchanged (`leafIndex`, `trackingId`…) and no consumer noticed the move.
+
+**Known limitations.**
+
+- Atlas allows the GKE nodes' public IPs, and Autopilot can replace nodes. Production would send traffic out through
+  one reserved address (Cloud NAT) or use a private endpoint (Atlas M10+).
+- `docker-compose.yml` still starts Postgres for local runs; the local stack needs a MongoDB service before
+  `transparency-service` runs locally again.
+- Postgres stays in the cluster as the rollback path until it's retired.
