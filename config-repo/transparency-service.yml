@@ -12,17 +12,11 @@ spring:
       properties:
         spring.json.trusted.packages: "com.entropa.*"
         spring.json.type.mapping: "attestation-event:com.entropa.transparencyservice.model.AttestationEvent"
-  datasource:
-    url: jdbc:postgresql://localhost:5432/entropa
-    username: entropa
-    # password intentionally NOT set here — it's a secret, so it comes only
-    # from the SPRING_DATASOURCE_PASSWORD container env var (set in
-    # docker-compose.yml / the Helm chart's Secret), never through remote
-    # config, even as a ${PLACEHOLDER}.
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
+  data:
+    mongodb:
+      auto-index-creation: true   # create the @Indexed indexes when the app starts
+      # no uri here, on purpose: the connection string holds a password, so it arrives only
+      # as the environment variable SPRING_DATA_MONGODB_URI (rule L2)
 
 entropa:
   ingest:

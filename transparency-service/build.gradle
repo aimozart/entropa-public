@@ -2,11 +2,11 @@ dependencies {
     implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'   // was ...-data-jpa: MongoDB driver + Spring Data MongoDB
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     implementation 'org.springframework.kafka:spring-kafka'
-    runtimeOnly 'org.postgresql:postgresql'
+    // removed: runtimeOnly 'org.postgresql:postgresql'   (the Postgres driver)
     testImplementation 'org.springframework.kafka:spring-kafka-test'
-    testImplementation 'com.h2database:h2'
+    // removed: testImplementation 'com.h2database:h2'     (an in-memory SQL database used only for tests)
 }

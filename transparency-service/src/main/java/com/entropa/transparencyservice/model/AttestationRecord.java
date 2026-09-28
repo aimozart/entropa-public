@@ -1,46 +1,42 @@
 package com.entropa.transparencyservice.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import org.springframework.data.annotation.Id;                     // Spring Data's @Id (not jakarta.persistence's)
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "attestation_records", uniqueConstraints = @UniqueConstraint(columnNames = "leaf_index"))
+@Document("attestation_records")      // was @Entity + @Table: store these in this collection
 public class AttestationRecord {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;                // was Long + @GeneratedValue: MongoDB's _id, an ObjectId, made by the driver
 
-    @Column(name = "leaf_index", nullable = false)
+    @Indexed(unique = true)           // was @UniqueConstraint(leaf_index): two records can never share an index
+    @Field("leaf_index")              // same name as the old column, so migrated data lines up
     private long leafIndex;
 
-    @Column(name = "tracking_id", nullable = false, unique = true)
+    @Indexed(unique = true)           // was @Column(unique = true): one record per tracking ID
+    @Field("tracking_id")
     private String trackingId;
 
-    @Column(name = "content_hash", nullable = false)
+    @Field("content_hash")
     private String contentHash;
 
-    @Column(name = "label")
-    private String label;
+    private String label;             // no @Field needed: the field is simply "label"
 
-    @Column(name = "block_hash", nullable = false)
+    @Field("block_hash")
     private String blockHash;
 
-    @Column(name = "previous_hash", nullable = false)
+    @Field("previous_hash")
     private String previousHash;
 
-    @Column(name = "submitted_at", nullable = false)
-    private Instant submittedAt;
+    @Field("submitted_at")
+    private Instant submittedAt;      // stored as a BSON date (type 9, from your BSON class)
 
     protected AttestationRecord() {
-        // required by JPA
+        // required by Spring Data to rebuild the object from a stored document
     }
 
     public AttestationRecord(long leafIndex, String trackingId, String contentHash, String label,
@@ -54,7 +50,7 @@ public class AttestationRecord {
         this.submittedAt = submittedAt;
     }
 
-    public Long getId() {
+     public String getId() {           // was Long
         return id;
     }
 
