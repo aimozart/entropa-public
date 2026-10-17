@@ -204,7 +204,7 @@ secrets in the ML-DSA test-vector JSON above are public NIST FIPS-204 ACVP fixtu
 credentials — see [`SECURITY.md`](SECURITY.md), [`ANALYSIS_NOTES.md`](ANALYSIS_NOTES.md), and the
 note directly in [`crates/core/tests/vectors/README.md`](crates/core/tests/vectors/README.md).
 
-**Tests** — `cargo test --workspace` → expected: all pass, 93 tests total (re-verify this number
+**Tests** — `cargo test --workspace` → expected: all pass, 106 tests total plus 1 deliberately ignored (verified 2026-10-17; re-verify this number
 before trusting it — it drifts as the codebase grows; run the command above for ground truth). This
 repo uses Rust's idiomatic co-located `#[cfg(test)] mod tests` convention alongside real integration
 tests under `crates/*/tests/` — a file-count heuristic that only looks for a literal `*_test.rs`
@@ -242,7 +242,7 @@ Probe, Gemini-driven on Vertex AI, lives in the private `entropa-agents` crate �
 [`OPEN_SOURCE.md`](OPEN_SOURCE.md).)
 
 ```bash
-cargo test --workspace   # 93 tests, all real crypto and consensus logic
+cargo test --workspace   # 106 tests (1 ignored), all real crypto and consensus logic
 ```
 
 ## The real story: built by breaking, in public, and fixing it

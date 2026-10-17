@@ -21,7 +21,7 @@ or `scripts/verify.sh`, the canonical entrypoint that also runs fmt/clippy/gitle
 
 - **13 source files** contain `#[cfg(test)] mod tests` blocks (`entropa-api`, `entropa-core`,
   `entropa-node`).
-- **72 passing tests** total (`cargo test --workspace`).
+- **106 passing tests** total, plus 1 deliberately ignored (`cargo test --workspace`, verified 2026-10-17).
 - **1 integration test file** under `crates/core/tests/nist_kat.rs` — official FIPS-204 ACVP vectors,
   byte-exact ML-DSA-65 correctness against NIST's own published reference data.
 
