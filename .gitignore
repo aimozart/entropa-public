@@ -3,3 +3,38 @@
 .env
 .DS_Store
 backup-push.log
+
+# --- baseline for public repos (appended 2026-11-05) ---
+# Public-repo baseline (append to the project's own ignores). Checked by scripts/public-repo-preflight.sh.
+# secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.gpg
+id_rsa*
+id_ed25519*
+credentials.json
+service-account*.json
+.aws/
+.netrc
+.npmrc
+secrets/
+# infrastructure state
+*.tfstate
+*.tfstate.*
+.terraform/
+# agent / tool local state (audit logs and per-machine permissions never go public)
+.claude/settings.local.json
+.claude/hook-audit.jsonl
+# build, deps, noise
+target/
+/target
+node_modules/
+__pycache__/
+.DS_Store
+*.log
