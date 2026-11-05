@@ -20,5 +20,8 @@ This repository is the **public face** of Entropa: the architecture, the scope, 
 ## Status (2026-11-05)
 Built and running: signed Merkle ledger with Google Cloud KMS signing, evidence ledger for healthcare data engineering, in-browser verifier, independent checkpoint witness on Azure (temporary, credit-funded), contact service, public explorers, docs site. Planned, not built: decision review council, decision memory, cloud agent harness, AWS witness. Wording: aligned with and mapped to HIPAA, HITRUST, NIST AI RMF and ISO/IEC 42001 themes; not assessed, not certified.
 
+## Tested on Linux
+The install commands and every node type were run on fresh server images of **Ubuntu 24.04.5 LTS** (apt) and **Rocky Linux 10.2** (dnf) on 2026-11-05: create a node, record AI decisions, audit evidence and council steps, verify the three ledgers, serve them over HTTP, and cross-sign a checkpoint with a witness node; the open-core test suite (106 tests) passes on both. Exact packages per step and the bugs the test found: [LINUX-TEST-MATRIX](https://github.com/aimozart/scryon-health-data/blob/main/docs/LINUX-TEST-MATRIX.md). Install commands: https://docs.entropa.space/install-linux (Linux only).
+
 ## Method
 Tests first (red, then green); fuzzing and mutation testing on parsing and verification; secret scanning (gitleaks) and a public-repo preflight before every push; signed, data-minimal records; directed AI assistance, reviewed and verified by tests.
