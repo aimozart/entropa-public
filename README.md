@@ -20,6 +20,9 @@ This repository is the **public face** of Entropa: the architecture, the scope, 
 ## Status (2026-11-05)
 Built and running: a signed Merkle ledger with Google Cloud KMS signing; an evidence ledger for healthcare data engineering; a decision review council (critic on Azure, contestor on Google, a Human Principal's decision last, with a computed quorum line); independent witnesses on Azure and AWS that co-sign the AI-decision ledger; an in-browser verifier; per-module pipelines with signed receipts; a decision memory and an agent harness used by the council's models; an independent auditor loop (report published). Known limits: the three ledgers share one signing key, so only the AI-decision ledger is witnessed; scheduling of council sessions is manual; the per-module workflow is not yet on a hosted CI runner. Wording: aligned with and mapped to HIPAA, HITRUST, NIST AI RMF and ISO/IEC 42001 themes; not assessed, not certified.
 
+## Download the node (Linux)
+The node and the checkpoint witness are published as free binaries (source not published): [node-v0.2.0](https://github.com/aimozart/entropa-public/releases/tag/node-v0.2.0), x86_64 Linux, glibc 2.34 or newer, with a checksum file. Exact commands: https://docs.entropa.space/install-linux
+
 ## Tested on Linux
 The install commands and every node type were run on fresh server images of **Ubuntu 24.04.5 LTS** (apt) and **Rocky Linux 10.2** (dnf) on 2026-11-05: create a node, record AI decisions, audit evidence and council steps, verify the three ledgers, serve them over HTTP, and cross-sign a checkpoint with a witness node; the open-core test suite (106 tests) passes on both. Exact packages per step and the bugs the test found: [LINUX-TEST-MATRIX](https://github.com/aimozart/scryon-health-data/blob/main/docs/LINUX-TEST-MATRIX.md). Install commands: https://docs.entropa.space/install-linux (Linux only).
 
