@@ -4,7 +4,6 @@
 
 - Site: https://entropa.space · Docs: https://docs.entropa.space
 - AI Audit Explorer: https://scryon.entropa.space
-- Health Data Explorer: https://scryon-health.entropa.space (verifies every signature in your browser)
 - Crates on crates.io (Trusted Publishing): `entropa-core`, `entropa-node`
 
 ## What is in this repository
