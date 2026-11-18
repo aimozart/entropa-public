@@ -1,15 +1,9 @@
-# Entropa (public) — post-quantum core, Proof of Entropy consensus, and the Scryon
-# explorer. "AI probes reach post-quantum consensus, seeded by the entropy of space."
-#
-# The AI Probe intelligence (entropa-agents) is proprietary and lives in a private
-# repo — see OPEN_SOURCE.md. This public repo is the open-core: crypto + consensus +
-# explorer, all MIT-licensed.
+# Early Entropa crates, published to crates.io: entropa-core and entropa-node.
 [workspace]
 resolver = "2"
 members = [
     "crates/core",
     "crates/node",
-    "crates/api",
 ]
 
 [workspace.package]
